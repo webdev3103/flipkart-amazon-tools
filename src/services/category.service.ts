@@ -112,6 +112,10 @@ export class CategoryService extends FirebaseService {
       orderBy("name", "asc"),
     ]); // Pre-fetch groups to reduce calls
 
+    const categoryGroups = await this.getDocuments("categoryGroups", [
+      orderBy("name", "asc"),
+    ]); // Pre-fetch groups to reduce calls
+
     for (const category of categories) {
       if (category.categoryGroupId) {
         const group = categoryGroups.find(
