@@ -60,3 +60,6 @@ DerivedData
 *.xcworkspace/xcuserdata
 *playwright*
 test-results/
+
+# Husky
+.husky/_
