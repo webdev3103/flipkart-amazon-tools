@@ -23,6 +23,7 @@ import AssignmentIcon from '@mui/icons-material/Assignment';
 import LinkIcon from '@mui/icons-material/Link';
 import { CategoryService, Category } from '../../services/category.service';
 import { CategoryGroupService } from '../../services/categoryGroup.service';
+import { CategoryGroup } from '../../types/categoryGroup';
 import CategoryGroupSelector from '../categoryGroups/components/CategoryGroupSelector';
 import { CategoryForm } from './CategoryForm';
 import { DataTable, Column } from '../../components/DataTable/DataTable';
@@ -362,7 +363,7 @@ const SimpleCategoryTable: React.FC<SimpleCategoryTableProps> = ({
       );
       
       // Get the group details for optimistic update
-      let groupDetails = null;
+      let groupDetails: CategoryGroup | null | undefined = null;
       if (groupId) {
         groupDetails = await categoryGroupService.getCategoryGroup(groupId);
       }
@@ -495,7 +496,7 @@ const SimpleCategoryTable: React.FC<SimpleCategoryTableProps> = ({
                   await categoryService.assignCategoryToGroup(groupAssignmentOpen, groupId);
                   
                   // Get the group details for optimistic update
-                  let groupDetails = null;
+                  let groupDetails: CategoryGroup | null | undefined = null;
                   if (groupId) {
                     groupDetails = await categoryGroupService.getCategoryGroup(groupId);
                   }

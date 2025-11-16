@@ -141,6 +141,7 @@
     "@vitejs/plugin-react": "latest",
     "babel-jest": "^29.7.0",
     "babel-plugin-transform-vite-meta-env": "^1.0.3",
+    "canvas": "^3.2.0",
     "concurrently": "^9.1.2",
     "cross-env": "^7.0.3",
     "dotenv": "^16.5.0",
@@ -163,5 +164,8 @@
   "volta": {
     "node": "22.16.0",
     "npm": "11.4.1"
+  },
+  "overrides": {
+    "canvas": "^3.2.0"
   }
 }

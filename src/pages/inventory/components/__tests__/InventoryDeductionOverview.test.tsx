@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
-import { configureStore } from '@reduxjs/toolkit';
+import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import InventoryDeductionOverview from '../InventoryDeductionOverview';
 import { inventoryReducer } from '../../../../store/slices/inventorySlice';
@@ -97,30 +97,39 @@ jest.mock('date-fns', () => ({
 
 const theme = createTheme();
 
+interface RenderOptions {
+  preloadedState?: any;
+  store?: ReturnType<typeof configureStore>;
+  [key: string]: any;
+}
+
+const rootReducer = combineReducers({
+  inventory: inventoryReducer,
+  categories: categoriesReducer,
+});
+
 const renderWithProviders = (
   ui: React.ReactElement,
   {
-    preloadedState = {},
-    store = configureStore({ 
-      reducer: {
-        inventory: inventoryReducer,
-        categories: categoriesReducer,
-      },
-      preloadedState,
-    }),
+    preloadedState,
+    store,
     ...renderOptions
-  } = {}
+  }: RenderOptions = {}
 ) => {
+  const testStore = store || configureStore({
+    reducer: rootReducer,
+    ...(preloadedState ? { preloadedState } : {}),
+  });
   function Wrapper({ children }: { children: React.ReactNode }) {
     return (
-      <Provider store={store}>
+      <Provider store={testStore}>
         <ThemeProvider theme={theme}>
           {children}
         </ThemeProvider>
       </Provider>
     );
   }
-  return { store, ...render(ui, { wrapper: Wrapper, ...renderOptions }) };
+  return { store: testStore, ...render(ui, { wrapper: Wrapper, ...renderOptions }) };
 };
 
 describe('InventoryDeductionOverview', () => {

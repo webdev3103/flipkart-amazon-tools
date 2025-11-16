@@ -5,7 +5,7 @@ import React from "react";
 export const ViewFlipkartListingButton: React.FC<{
   flipkartSerialNumber: string;
 }> = ({ flipkartSerialNumber }) =>
-    flipkartSerialNumber && flipkartSerialNumber.trim() !== '' && (
+    flipkartSerialNumber && flipkartSerialNumber.trim() !== '' ? (
       <Link
         title="View Flipkart Listing"
         href={`https://www.flipkart.com/product/p/itme?pid=${flipkartSerialNumber}`}
@@ -17,12 +17,12 @@ export const ViewFlipkartListingButton: React.FC<{
           <Shop2Outlined />
         </IconButton>
       </Link>
-    );
+    ) : null;
 
 export const ViewAmazonListingButton: React.FC<{
   amazonSerialNumber: string;
 }> = ({ amazonSerialNumber }) =>
-    amazonSerialNumber && amazonSerialNumber.trim() !== '' && (
+    amazonSerialNumber && amazonSerialNumber.trim() !== '' ? (
       <Link
         title="View Amazon Listing"
         href={`https://www.amazon.in/sacred/dp/${amazonSerialNumber}`}
@@ -34,7 +34,7 @@ export const ViewAmazonListingButton: React.FC<{
           <Shop2Outlined />
         </IconButton>
       </Link>
-    );
+    ) : null;
 
 export const ShowProductEditPageButton: React.FC<{
   sku: string;
