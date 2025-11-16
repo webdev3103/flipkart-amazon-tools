@@ -63,15 +63,21 @@ jobs:
         run: |
           echo "📦 Downloading build artifacts from release assets..."
           VERSION=$(echo "${{ github.event.release.tag_name }}" | sed 's/v//')
-          ASSET_NAME="sacred-sutra-tools-v$VERSION.zip"
-          
+
+          # Try the new naming convention first (web-specific)
+          ASSET_NAME="sacred-sutra-tools-web-v$VERSION.zip"
+
           # Download and extract release asset
-          gh release download "${{ github.event.release.tag_name }}" --pattern "$ASSET_NAME" || echo "No release asset found"
-          
+          gh release download "${{ github.event.release.tag_name }}" --pattern "$ASSET_NAME" || {
+            echo "⚠️ New asset format not found, trying legacy format..."
+            ASSET_NAME="sacred-sutra-tools-v$VERSION.zip"
+            gh release download "${{ github.event.release.tag_name }}" --pattern "$ASSET_NAME" || echo "No release asset found"
+          }
+
           if [ -f "$ASSET_NAME" ]; then
             mkdir -p dist
             unzip "$ASSET_NAME" -d dist/
-            echo "✅ Release artifacts extracted"
+            echo "✅ Release artifacts extracted from $ASSET_NAME"
           else
             echo "⚠️ No release assets found, will build from source"
           fi

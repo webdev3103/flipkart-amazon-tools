@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+**THIS FILE INHERITS FROM THE PARENT [CLAUDE.md](../CLAUDE.md).**
+
+All shared coding principles, testing requirements, code quality standards, and documentation guidelines are defined in the parent file. This file contains only project-specific technical details for **sacred-sutra-tools**.
+
 ## Project Overview
 
 **Flipkart-Amazon Tools** (Sacred Sutra Tools) is a cross-platform e-commerce management application designed for businesses selling on Amazon and Flipkart platforms. Available as a web application and native mobile apps (iOS/Android via Capacitor 6).
@@ -68,32 +72,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Testing Requirements
 
-**Task Completion Criteria**
-Before marking any task as complete, ensure:
+**Project-Specific Testing:**
+- Run full test suite: `npm test`
+- Integration tests: `npm run test:ci`
+- Coverage report (≥80%): `npm run test:coverage`
+- TypeScript compilation: `npm run type-check`
+- ESLint + type check: `npm run lint-full`
 
-1. **All Tests Pass**
-   - Run full test suite: `npm test`
-   - Integration tests pass: `npm run test:ci`
-   - Coverage report shows ≥80%: `npm run test:coverage`
+**Additional Requirements:**
+- Component tests for UI elements
+- Integration tests for PDF processing
+- Performance tests for large operations
+- All Firebase emulator tests passing
 
-2. **Code Quality Checks**
-   - TypeScript compilation: `npm run type-check`
-   - ESLint validation: `npm run lint`
-   - Full quality check: `npm run lint-full`
-
-3. **Test Coverage Requirements**
-   - Unit tests for all business logic
-   - Component tests for UI elements
-   - Integration tests for PDF processing
-   - Edge cases and error conditions covered
-   - Async operations properly tested
-
-4. **Testing Guidelines**
-   - No skipped or pending tests
-   - Clear test descriptions
-   - Both positive and negative cases included
-   - Performance tests for large operations
-   - All Firebase emulator tests passing
+**Note:** Core testing requirements (all tests pass, no skipped tests, edge cases covered) are defined in the parent [CLAUDE.md](../CLAUDE.md).
 
 ## Architecture Overview
 

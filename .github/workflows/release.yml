@@ -103,6 +103,56 @@ jobs:
             echo "ℹ️ No version bump detected"
           fi
 
+      - name: Build Mobile Web Assets
+        if: steps.check-version-bump.outputs.version_bumped == 'true'
+        id: build-mobile
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "🏗️ Building mobile web assets for version v$VERSION..."
+
+          # Build for mobile with production optimizations
+          npm run build:mobile
+
+          echo "✅ Mobile web build completed"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Setup Java for Android Build
+        if: steps.check-version-bump.outputs.version_bumped == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        if: steps.check-version-bump.outputs.version_bumped == 'true'
+        uses: android-actions/setup-android@v3
+
+      - name: Build Android Release
+        if: steps.check-version-bump.outputs.version_bumped == 'true'
+        id: build-android
+        run: |
+          VERSION="${{ steps.build-mobile.outputs.version }}"
+          echo "🤖 Building Android app for version v$VERSION..."
+
+          # Update Android version
+          VERSION_CODE=$(date +%s)
+          sed -i "s/versionCode [0-9]*/versionCode $VERSION_CODE/" android/app/build.gradle
+          sed -i "s/versionName \".*\"/versionName \"$VERSION\"/" android/app/build.gradle
+
+          # Sync Capacitor
+          npx cap sync android
+
+          # Grant execute permission
+          chmod +x android/gradlew
+
+          # Build release APK (unsigned for now - add keystore secrets for signed builds)
+          cd android
+          ./gradlew assembleRelease
+          cd ..
+
+          echo "✅ Android APK built successfully"
+          echo "android_built=true" >> $GITHUB_OUTPUT
+
       - name: Create GitHub Release
         if: steps.check-version-bump.outputs.version_bumped == 'true'
         id: create-release
@@ -110,54 +160,74 @@ jobs:
           # Get current version from package.json
           VERSION=$(node -p "require('./package.json').version")
           echo "Creating release for version v$VERSION"
-          
-          # Upload build artifacts to release
+
+          # Prepare release assets
+          ASSETS=""
+
+          # Package web build artifacts
           if [ -d "dist" ] && [ "$(ls -A dist)" ]; then
-            echo "📦 Creating release package..."
+            echo "📦 Packaging web build..."
             cd dist
-            zip -r ../sacred-sutra-tools-v$VERSION.zip .
+            zip -r ../sacred-sutra-tools-web-v$VERSION.zip .
             cd ..
+            ASSETS="$ASSETS sacred-sutra-tools-web-v$VERSION.zip"
           fi
-          
-          # Create GitHub release
-          if [ -f "sacred-sutra-tools-v$VERSION.zip" ]; then
-            gh release create "v$VERSION" \
-              --title "Release v$VERSION" \
-              --notes "## Changes
+
+          # Add Android APK if built
+          if [ -f "android/app/build/outputs/apk/release/app-release.apk" ]; then
+            echo "📦 Packaging Android APK..."
+            cp android/app/build/outputs/apk/release/app-release.apk sacred-sutra-tools-android-v$VERSION.apk
+            ASSETS="$ASSETS sacred-sutra-tools-android-v$VERSION.apk"
+          fi
+
+          # Create release notes
+          RELEASE_NOTES="## Changes
 
           See [CHANGELOG.md](CHANGELOG.md) for detailed changes.
 
           ## Deployment
 
           This release has been automatically deployed to production.
-          
+
           🌐 **Live URL**: https://tool.sacredsutra.in/
-          
+
           ## Assets
-          
-          - \`sacred-sutra-tools-v$VERSION.zip\` - Production build artifacts
-          
+
+          ### 🌐 Web Application
+          - \`sacred-sutra-tools-web-v$VERSION.zip\` - Production web build (deployed to GitHub Pages)
+
+          ### 📱 Mobile Application (Android)
+          - \`sacred-sutra-tools-android-v$VERSION.apk\` - Android APK for direct installation
+
+          **Note:** To install the Android APK:
+          1. Enable \"Unknown sources\" in Android settings
+          2. Download and install the APK file
+          3. Grant camera and storage permissions when prompted
+
           ## Quality Assurance
-          
+
           - ✅ All tests passed
-          - ✅ TypeScript validation completed  
+          - ✅ TypeScript validation completed
           - ✅ Code quality checks passed
-          - ✅ Build artifacts verified" \
+          - ✅ Web build verified
+          - ✅ Android build verified"
+
+          # Create GitHub release with assets
+          if [ -n "$ASSETS" ]; then
+            gh release create "v$VERSION" \
+              --title "Sacred Sutra Tools v$VERSION" \
+              --notes "$RELEASE_NOTES" \
               --latest \
-              sacred-sutra-tools-v$VERSION.zip
+              $ASSETS
+            echo "✅ Release created with assets: $ASSETS"
           else
             gh release create "v$VERSION" \
-              --title "Release v$VERSION" \
-              --notes "## Changes
-
-          See [CHANGELOG.md](CHANGELOG.md) for detailed changes.
-
-          ## Deployment
-
-          This release will be automatically deployed to production." \
+              --title "Sacred Sutra Tools v$VERSION" \
+              --notes "$RELEASE_NOTES" \
               --latest
+            echo "⚠️ Release created without assets"
           fi
-          
+
           echo "release_created=true" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT
         env:
