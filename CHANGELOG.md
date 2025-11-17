@@ -1,5 +1,11 @@
 # Changelog
 
+## 10.0.0
+
+### Major Changes
+
+- [#80](https://github.com/webdev3103/flipkart-amazon-tools/pull/80) [`7d09976`](https://github.com/webdev3103/flipkart-amazon-tools/commit/7d099769a528b506c9a3886bf292aff025adc5e0) Thanks [@webdev3103](https://github.com/webdev3103)! - Integrated android app build
+
 ## 9.11.4
 
 ### Patch Changes
