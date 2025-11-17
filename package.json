@@ -13,12 +13,13 @@
     "emulator:ui": "firebase emulators:start --only auth,firestore,storage --inspect-functions",
     "emulator:export": "firebase emulators:export ./firebase-data",
     "emulator:import": "firebase emulators:start --only auth,firestore,storage --import ./firebase-data",
-    "emulator:reset": "firebase emulators:exec --only auth,firestore,storage \"npm run seed:emulator\"",
-    "seed:emulator": "node scripts/seed-emulator.js",
+    "emulator:reset": "firebase emulators:exec --only auth,firestore,storage \"npm run emulator:seed\"",
+    "emulator:seed": "node scripts/seed-emulator.js",
     "seed:enhanced": "node scripts/seed-emulator.js",
-    "seed:wait-and-run": "node -e \"setTimeout(() => process.exit(0), 4000)\" && npm run seed:emulator",
+    "seed:wait-and-run": "node -e \"setTimeout(() => process.exit(0), 4000)\" && npm run emulator:seed",
     "build": "tsc && vite build",
     "build:prod": "vite build",
+    "build:mobile": "vite build --mode mobile --base=/",
     "preview": "vite preview",
     "serve:prod": "npm run build:prod && vite preview",
     "predeploy": "npm run build:prod",
@@ -26,6 +27,7 @@
     "deploy:storage-rules": "./deploy-storage-rules.sh",
     "deploy:all": "firebase deploy",
     "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "type-check": "tsc --noEmit",
     "lint-full": "npm run type-check && npm run lint",
     "test": "NODE_ENV=test jest",
@@ -40,6 +42,11 @@
     "test:related": "npm run test:ci -- --findRelatedTests --passWithNoTests",
     "test:fast": "npm run test:critical && npm run test:smoke",
     "test:storage-rules": "firebase emulators:exec --only storage \"npm run test\"",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:mobile": "playwright test --project='Mobile*'",
+    "test:e2e:debug": "playwright test --debug",
     "pre-commit": "lint-staged",
     "prepare": "husky",
     "changeset": "changeset",
@@ -50,7 +57,13 @@
     "migrate:inventory:dry-run": "node scripts/migrations/add-inventory-fields.js --dry-run",
     "migrate:inventory:run": "node scripts/migrations/add-inventory-fields.js",
     "migrate:inventory:rollback": "node scripts/migrations/add-inventory-fields.js --rollback",
-    "migrate:inventory:help": "node scripts/migrations/add-inventory-fields.js --help"
+    "migrate:inventory:help": "node scripts/migrations/add-inventory-fields.js --help",
+    "mobile:sync": "npx cap sync",
+    "mobile:open:ios": "npx cap open ios",
+    "mobile:open:android": "npx cap open android",
+    "mobile:build:ios": "npm run build:mobile && npx cap sync ios",
+    "mobile:build:android": "npm run build:mobile && npx cap sync android",
+    "mobile:sync:dev": "npm run build:mobile && npx cap sync"
   },
   "lint-staged": {
     "src/**/*.{ts,tsx,js,jsx}": [
@@ -59,6 +72,16 @@
     ]
   },
   "dependencies": {
+    "@capacitor-firebase/app": "^7.3.1",
+    "@capacitor-firebase/authentication": "^7.3.1",
+    "@capacitor-firebase/firestore": "^7.3.1",
+    "@capacitor-firebase/storage": "^7.3.1",
+    "@capacitor-mlkit/barcode-scanning": "^7.3.0",
+    "@capacitor/android": "^7.4.3",
+    "@capacitor/app": "^7.1.0",
+    "@capacitor/cli": "^7.4.3",
+    "@capacitor/core": "^7.4.3",
+    "@capacitor/ios": "^7.4.3",
     "@emotion/react": "latest",
     "@emotion/styled": "latest",
     "@hookform/resolvers": "^5.0.1",
@@ -100,6 +123,7 @@
     "@changesets/changelog-github": "^0.5.1",
     "@changesets/cli": "^2.29.5",
     "@eslint/js": "^9.17.0",
+    "@playwright/test": "^1.55.1",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.0",
@@ -117,6 +141,7 @@
     "@vitejs/plugin-react": "latest",
     "babel-jest": "^29.7.0",
     "babel-plugin-transform-vite-meta-env": "^1.0.3",
+    "canvas": "^3.2.0",
     "concurrently": "^9.1.2",
     "cross-env": "^7.0.3",
     "dotenv": "^16.5.0",
@@ -139,5 +164,8 @@
   "volta": {
     "node": "22.16.0",
     "npm": "11.4.1"
+  },
+  "overrides": {
+    "canvas": "^3.2.0"
   }
 }

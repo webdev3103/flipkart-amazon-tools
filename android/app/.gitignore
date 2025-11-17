@@ -1,0 +1,9 @@
+/build/*
+!/build/.npmkeep
+
+
+# Keystore files - SECURITY CRITICAL: NEVER COMMIT THESE
+*.jks
+*.keystore
+*.base64.txt
+keystore-config.txt
