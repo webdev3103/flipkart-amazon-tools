@@ -18,18 +18,21 @@ import { fetchOrderHistory } from '../../../store/slices/orderHistorySlice';
 import { fetchOrders } from '../../../store/slices/ordersSlice';
 import { fetchProducts } from '../../../store/slices/productsSlice';
 import { selectIsAuthenticated } from '../../../store/slices/authSlice';
-import {
-    fetchInventoryLevels,
-    fetchInventoryAlerts,
-} from '../../../store/slices/inventorySlice';
+import { fetchTransactions } from '../../../store/slices/transactionsSlice';
+import { fetchCategories } from '../../../store/slices/categoriesSlice';
 import { ProductSummary } from '../../../pages/home/services/base.transformer';
-import InventoryAlertsWidget from '../components/InventoryAlertsWidget';
 import { usePullToRefresh } from '../../../hooks/usePullToRefresh';
+import ProfitSummaryWidget from '../components/ProfitSummaryWidget';
+import RecentPDFUploadsWidget from '../components/RecentPDFUploadsWidget';
+import InventoryAlertsSummaryWidget from '../components/InventoryAlertsSummaryWidget';
+import TopCategoriesWidget from '../components/TopCategoriesWidget';
 
 export const MobileDashboardPage: React.FC = () => {
     const dispatch = useAppDispatch();
     const { items: products, loading: productsLoading } = useAppSelector(state => state.products);
     const { items: orders } = useAppSelector(state => state.orders);
+    const { items: transactions, loading: transactionsLoading } = useAppSelector(state => state.transactions);
+    const { items: categories, loading: categoriesLoading } = useAppSelector(state => state.categories);
     const isAuthenticated = useAppSelector(selectIsAuthenticated);
 
     const { state: pullState, containerRef } = usePullToRefresh(
@@ -38,8 +41,8 @@ export const MobileDashboardPage: React.FC = () => {
                 dispatch(fetchProducts({})).unwrap(),
                 dispatch(fetchOrders()).unwrap(),
                 dispatch(fetchOrderHistory()).unwrap(),
-                dispatch(fetchInventoryLevels()).unwrap(),
-                dispatch(fetchInventoryAlerts()).unwrap(),
+                dispatch(fetchTransactions()).unwrap(),
+                dispatch(fetchCategories()).unwrap(),
             ]);
         },
         { threshold: 80, enabled: true }
@@ -50,8 +53,8 @@ export const MobileDashboardPage: React.FC = () => {
             dispatch(fetchProducts({}));
             dispatch(fetchOrders());
             dispatch(fetchOrderHistory());
-            dispatch(fetchInventoryLevels());
-            dispatch(fetchInventoryAlerts());
+            dispatch(fetchTransactions());
+            dispatch(fetchCategories());
         }
     }, [dispatch, isAuthenticated]);
 
@@ -65,7 +68,9 @@ export const MobileDashboardPage: React.FC = () => {
 
     const averageOrderValue = totalOrders > 0 ? revenue / totalOrders : 0;
 
-    if (productsLoading) {
+    const loading = productsLoading || transactionsLoading || categoriesLoading;
+
+    if (loading) {
         return (
             <MobileAppShell pageTitle="Dashboard">
                 <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -185,19 +190,33 @@ export const MobileDashboardPage: React.FC = () => {
                         </Grid>
                     </Grid>
 
+                    {/* Profit Summary Widget */}
+                    <Box sx={{ mb: 2 }}>
+                        <ProfitSummaryWidget
+                            transactions={transactions}
+                            products={products}
+                            loading={loading}
+                        />
+                    </Box>
+
                     {/* Inventory Alerts Widget */}
                     <Box sx={{ mb: 2 }}>
-                        <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                            Inventory Alerts
-                        </Typography>
-                        <InventoryAlertsWidget
-                            maxAlertsInWidget={3}
-                            onManualAdjustment={(categoryGroupId) => {
-                                console.log('Manual adjustment for category group:', categoryGroupId);
-                            }}
-                            onViewCategoryGroup={(categoryGroupId) => {
-                                console.log('View category group:', categoryGroupId);
-                            }}
+                        <InventoryAlertsSummaryWidget maxAlertsInWidget={3} />
+                    </Box>
+
+                    {/* Recent PDF Uploads Widget */}
+                    <Box sx={{ mb: 2 }}>
+                        <RecentPDFUploadsWidget maxItems={3} />
+                    </Box>
+
+                    {/* Top Categories Widget */}
+                    <Box sx={{ mb: 2 }}>
+                        <TopCategoriesWidget
+                            transactions={transactions}
+                            products={products}
+                            categories={categories}
+                            loading={loading}
+                            maxCategories={3}
                         />
                     </Box>
                 </Box>

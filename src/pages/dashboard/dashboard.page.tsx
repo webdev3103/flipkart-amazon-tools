@@ -23,17 +23,14 @@ import { fetchOrderHistory } from '../../store/slices/orderHistorySlice';
 import { fetchOrders } from '../../store/slices/ordersSlice';
 import { fetchProducts } from '../../store/slices/productsSlice';
 import { selectIsAuthenticated } from '../../store/slices/authSlice';
-import {
-    fetchInventoryLevels,
-    fetchInventoryAlerts,
-    selectInventoryLevels,
-    selectInventoryLoading
-} from '../../store/slices/inventorySlice';
-import { HighPricedProductsWidget } from './components/ProductAlertWidgets';
-import UncategorizedProductsWidget from './components/UncategorizedProductsWidget';
-import InventoryAlertsWidget from './components/InventoryAlertsWidget';
-import InventorySummaryWidget from './components/InventorySummaryWidget';
+import { fetchTransactions } from '../../store/slices/transactionsSlice';
+import { fetchCategories } from '../../store/slices/categoriesSlice';
 import { useIsMobile } from '../../utils/mobile';
+import ProfitSummaryWidget from './components/ProfitSummaryWidget';
+import RecentPDFUploadsWidget from './components/RecentPDFUploadsWidget';
+import InventoryAlertsSummaryWidget from './components/InventoryAlertsSummaryWidget';
+import TopCategoriesWidget from './components/TopCategoriesWidget';
+import ExpenseBreakdownWidget from './components/ExpenseBreakdownWidget';
 
 // Lazy load mobile component
 const MobileDashboardPage = lazy(() =>
@@ -46,9 +43,9 @@ const DesktopDashboardPage = () => {
     const { items: products, loading: productsLoading } = useAppSelector(state => state.products);
     const { items: orders } = useAppSelector(state => state.orders);
     const { dailyOrders } = useAppSelector(state => state.orderHistory);
+    const { items: transactions, loading: transactionsLoading } = useAppSelector(state => state.transactions);
+    const { items: categories, loading: categoriesLoading } = useAppSelector(state => state.categories);
     const isAuthenticated = useAppSelector(selectIsAuthenticated);
-    const inventoryLevels = useAppSelector(selectInventoryLevels);
-    const inventoryLoading = useAppSelector(selectInventoryLoading);
 
     useEffect(() => {
         // Only fetch data if authenticated
@@ -56,8 +53,8 @@ const DesktopDashboardPage = () => {
             dispatch(fetchProducts({}));
             dispatch(fetchOrders());
             dispatch(fetchOrderHistory());
-            dispatch(fetchInventoryLevels());
-            dispatch(fetchInventoryAlerts());
+            dispatch(fetchTransactions());
+            dispatch(fetchCategories());
         }
     }, [dispatch, isAuthenticated]);
 
@@ -72,7 +69,9 @@ const DesktopDashboardPage = () => {
     // Calculate actual Average Order Value
     const averageOrderValue = totalOrders > 0 ? revenue / totalOrders : 0;
 
-    if (productsLoading) {
+    const loading = productsLoading || transactionsLoading || categoriesLoading;
+
+    if (loading) {
         return (
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
                 <CircularProgress />
@@ -162,8 +161,8 @@ const DesktopDashboardPage = () => {
                 </Grid>
             </Grid>
 
-            {/* Charts and Widgets */}
-            <Grid container spacing={3}>
+            {/* Charts and Widgets Row 1: Orders Overview + Profit Summary */}
+            <Grid container spacing={3} sx={{ mb: 3 }}>
                 <Grid item xs={12} md={8}>
                     <Paper sx={{ p: 2 }}>
                         <Typography variant="h6" gutterBottom>
@@ -198,48 +197,42 @@ const DesktopDashboardPage = () => {
                     </Paper>
                 </Grid>
 
-            </Grid>
-
-            {/* Inventory Widgets */}
-            <Grid container spacing={3} sx={{ mt: 1 }}>
-                {/* Inventory Summary Widget */}
-                <Grid item xs={12} md={8}>
-                    <InventorySummaryWidget
-                        inventoryLevels={inventoryLevels}
-                        loading={inventoryLoading.inventoryLevels}
-                    />
-                </Grid>
-
-                {/* Inventory Alerts Widget */}
                 <Grid item xs={12} md={4}>
-                    <InventoryAlertsWidget
-                        maxAlertsInWidget={5}
-                        onManualAdjustment={(categoryGroupId) => {
-                            console.log('Manual adjustment for category group:', categoryGroupId);
-                        }}
-                        onViewCategoryGroup={(categoryGroupId) => {
-                            console.log('View category group:', categoryGroupId);
-                        }}
+                    <ProfitSummaryWidget
+                        transactions={transactions}
+                        products={products}
+                        loading={loading}
                     />
                 </Grid>
             </Grid>
 
-            {/* Additional Alert Widgets */}
-            <Grid container spacing={3} sx={{ mt: 1 }}>
+            {/* Row 2: Recent PDFs + Inventory Alerts */}
+            <Grid container spacing={3} sx={{ mb: 3 }}>
+                <Grid item xs={12} md={6}>
+                    <RecentPDFUploadsWidget maxItems={5} />
+                </Grid>
 
-                {/* High-Priced Products Widget */}
-                <Grid item xs={12} md={4}>
-                    <HighPricedProductsWidget
+                <Grid item xs={12} md={6}>
+                    <InventoryAlertsSummaryWidget maxAlertsInWidget={5} />
+                </Grid>
+            </Grid>
+
+            {/* Row 3: Top Categories + Expense Breakdown */}
+            <Grid container spacing={3}>
+                <Grid item xs={12} md={6}>
+                    <TopCategoriesWidget
+                        transactions={transactions}
                         products={products}
-                        loading={productsLoading}
+                        categories={categories}
+                        loading={loading}
+                        maxCategories={5}
                     />
                 </Grid>
 
-                {/* Uncategorized Products Widget */}
-                <Grid item xs={12} md={4}>
-                    <UncategorizedProductsWidget
-                        products={products}
-                        loading={productsLoading}
+                <Grid item xs={12} md={6}>
+                    <ExpenseBreakdownWidget
+                        transactions={transactions}
+                        loading={loading}
                     />
                 </Grid>
             </Grid>
