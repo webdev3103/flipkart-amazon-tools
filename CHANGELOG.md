@@ -1,5 +1,18 @@
 # Changelog
 
+## 10.1.0
+
+### Minor Changes
+
+- [#83](https://github.com/webdev3103/flipkart-amazon-tools/pull/83) [`48d35be`](https://github.com/webdev3103/flipkart-amazon-tools/commit/48d35be972b765d319d0c984a755e80b76c86443) Thanks [@webdev3103](https://github.com/webdev3103)! - feat(dashboard): Complete dashboard redesign with workflow-focused widgets
+
+  - Add 5 new analytics widgets: Profit Summary, Recent PDF Uploads, Inventory Alerts Summary, Top Categories by Revenue, and Expense Breakdown
+  - Remove outdated widgets: high-priced products, all products categorized, inventory overview
+  - Implement responsive mobile layouts with optimized item counts
+  - Update Firebase Storage rules to add `list` permissions for PDF directory operations
+  - Add graceful error handling and loading states for all widgets
+  - Support pull-to-refresh on mobile dashboard
+
 ## 10.0.0
 
 ### Major Changes
