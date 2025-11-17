@@ -1,24 +1,25 @@
 name: Mobile CI/CD
 
+# TEMPORARILY DISABLED - Mobile build disabled for now
 on:
-  pull_request:
-    branches: [ master ]
-    paths:
-      - 'ios/**'
-      - 'android/**'
-      - 'capacitor.config.ts'
-      - 'src/**'
-      - 'package.json'
-      - '.github/workflows/mobile-ci.yml'
-  push:
-    branches: [ master ]
-    paths:
-      - 'ios/**'
-      - 'android/**'
-      - 'capacitor.config.ts'
-      - 'src/**'
-      - 'package.json'
-  workflow_dispatch:  # Allow manual triggering
+  workflow_dispatch:  # Only allow manual triggering
+  # pull_request:
+  #   branches: [ master ]
+  #   paths:
+  #     - 'ios/**'
+  #     - 'android/**'
+  #     - 'capacitor.config.ts'
+  #     - 'src/**'
+  #     - 'package.json'
+  #     - '.github/workflows/mobile-ci.yml'
+  # push:
+  #   branches: [ master ]
+  #   paths:
+  #     - 'ios/**'
+  #     - 'android/**'
+  #     - 'capacitor.config.ts'
+  #     - 'src/**'
+  #     - 'package.json'
 
 permissions:
   contents: read
