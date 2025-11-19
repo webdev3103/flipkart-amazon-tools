@@ -46,7 +46,7 @@ const getRouteTitle = (pathname: string): string => {
     case "/transactions/":
       return "Transaction Analytics";
     case "/activeOrders/":
-      return "Active Orders";    
+      return "Active Orders";
     case "/products/":
       return "Products";
     case "/order-analytics/":
@@ -55,6 +55,13 @@ const getRouteTitle = (pathname: string): string => {
       return "Storage Management";
     case "/inventory/":
       return "Inventory Management";
+    case "/flipkart-returns":
+    case "/flipkart-returns/list":
+      return "Flipkart Returns";
+    case "/flipkart-returns/upload":
+      return "Upload Returns";
+    case "/flipkart-returns/analytics":
+      return "Returns Analytics";
     default:
       return "Label Merger";
   }

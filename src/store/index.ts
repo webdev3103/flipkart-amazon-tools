@@ -13,6 +13,7 @@ import orderAnalyticsReducer from './slices/orderAnalyticsSlice';
 import allOrdersForAnalyticsReducer from './slices/allOrdersForAnalyticsSlice';
 import inventoryReducer from './slices/inventorySlice';
 import inventoryDeductionReducer from './slices/inventoryDeductionSlice';
+import flipkartReturnsReducer from './slices/flipkartReturnsSlice';
 import { inventorySyncMiddleware } from './middleware/inventorySync.middleware';
 
 const persistConfig = {
@@ -20,7 +21,7 @@ const persistConfig = {
   version: 1,
   storage,
   whitelist: ['inventory'], // Enable inventory persistence
-  blacklist: ['auth', 'pdfMerger', 'products', 'orders', 'transactions', 'orderHistory', 'orderAnalytics', 'allOrdersForAnalytics', 'categoryGroups', 'inventoryDeduction'], // Don't persist these reducers
+  blacklist: ['auth', 'pdfMerger', 'products', 'orders', 'transactions', 'orderHistory', 'orderAnalytics', 'allOrdersForAnalytics', 'categoryGroups', 'inventoryDeduction', 'flipkartReturns'], // Don't persist these reducers
 };
 
 const rootReducer = combineReducers({
@@ -36,6 +37,7 @@ const rootReducer = combineReducers({
   allOrdersForAnalytics: allOrdersForAnalyticsReducer,
   inventory: inventoryReducer,
   inventoryDeduction: inventoryDeductionReducer,
+  flipkartReturns: flipkartReturnsReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

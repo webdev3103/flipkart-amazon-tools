@@ -8,6 +8,7 @@ import CategoryIcon from "@mui/icons-material/Category";
 import GroupIcon from "@mui/icons-material/Group";
 import WarningIcon from "@mui/icons-material/Warning";
 import StorageIcon from "@mui/icons-material/Storage";
+import AssignmentReturnIcon from "@mui/icons-material/AssignmentReturn";
 import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import {
@@ -133,7 +134,7 @@ export const DefaultContainer = ({
       path.includes("/categories/") || path.includes("/category-groups/")
     );
     setManagementOpen(
-      path.includes("/storage-management/") || path.includes("/inventory/")
+      path.includes("/storage-management/") || path.includes("/inventory/") || path.includes("/flipkart-returns")
     );
   }, [location.pathname]);
 
@@ -397,6 +398,24 @@ export const DefaultContainer = ({
                     <StorageIcon />
                   </StyledListItemIcon>
                   <StyledListItemText primary={"Storage Management"} />
+                </StyledListItemButton>
+              </ListItem>
+            </Link>
+            <Link
+              component={RouterLink}
+              to={"/flipkart-returns"}
+              data-testid="flipkart-returns"
+              style={{ textDecoration: "none", color: "inherit" }}
+              onClick={handleNavigation}
+            >
+              <ListItem key={"Flipkart Returns"} disablePadding>
+                <StyledListItemButton
+                  selected={isActiveRoute("/flipkart-returns") || isActiveRoute("/flipkart-returns/list") || isActiveRoute("/flipkart-returns/upload")}
+                >
+                  <StyledListItemIcon>
+                    <AssignmentReturnIcon />
+                  </StyledListItemIcon>
+                  <StyledListItemText primary={"Flipkart Returns"} />
                 </StyledListItemButton>
               </ListItem>
             </Link>
