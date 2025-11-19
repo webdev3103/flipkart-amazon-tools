@@ -9,7 +9,7 @@ import {
   Alert,
   AlertTitle,
 } from "@mui/material";
-import React, { useEffect } from "react";
+import React, { useEffect, Suspense, lazy } from "react";
 import WarningIcon from "@mui/icons-material/Warning";
 import CategoryIcon from "@mui/icons-material/Category";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
@@ -23,8 +23,11 @@ import { selectIsAuthenticated } from "../../store/slices/authSlice";
 import { Product } from "../../services/product.service";
 import { ProductEditModal } from "../products/components/ProductEditModal";
 import { UncategorizedProductTable } from "./components/UncategorizedProductTable";
+import { useIsMobile } from "../../utils/mobile";
+import { MobileAppShell } from "../../navigation/MobileAppShell";
 
 export const UncategorizedProductsPage: React.FC = () => {
+  const isMobile = useIsMobile();
   const dispatch = useAppDispatch();
   const {
     items: allProducts,
@@ -74,6 +77,77 @@ export const UncategorizedProductsPage: React.FC = () => {
     dispatch(setFilters(filters));
   };
 
+  // Mobile wrapper
+  if (isMobile) {
+    return (
+      <MobileAppShell pageTitle="Uncategorized">
+        <Box sx={{ p: 2 }}>
+          {uncategorizedProducts.length > 0 && (
+            <Box sx={{ mb: 2, display: "flex", justifyContent: "center" }}>
+              <Chip
+                label={`${uncategorizedProducts.length} Products`}
+                color="warning"
+                size="medium"
+              />
+            </Box>
+          )}
+
+          {uncategorizedProducts.length > 0 && (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              <AlertTitle>Action Required</AlertTitle>
+              {uncategorizedProducts.length} product(s) need categories.
+            </Alert>
+          )}
+
+          <Paper sx={{ p: 2 }}>
+            {loading ? (
+              <Box display="flex" justifyContent="center" py={4}>
+                <CircularProgress color="warning" size={40} />
+              </Box>
+            ) : uncategorizedProducts.length === 0 ? (
+              <Box
+                display="flex"
+                flexDirection="column"
+                alignItems="center"
+                justifyContent="center"
+                py={6}
+              >
+                <CategoryIcon sx={{ fontSize: 48, color: "success.main", mb: 2 }} />
+                <Typography variant="h6" sx={{ fontWeight: "bold", color: "success.dark", mb: 1, textAlign: "center" }}>
+                  All Products Categorized!
+                </Typography>
+                <Typography variant="body2" color="text.secondary" textAlign="center">
+                  Great job! All products have categories.
+                </Typography>
+              </Box>
+            ) : (
+              <Box>
+                <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold", color: "warning.dark" }}>
+                  Needs Categories
+                </Typography>
+                <UncategorizedProductTable
+                  products={uncategorizedProducts}
+                  onEdit={setEditingProduct}
+                  onFilterChange={handleFilterChange}
+                  onBulkCategoryUpdate={handleBulkCategoryUpdate}
+                />
+              </Box>
+            )}
+          </Paper>
+
+          {editingProduct && (
+            <ProductEditModal
+              product={editingProduct}
+              onClose={() => setEditingProduct(null)}
+              onSave={handleProductUpdate}
+            />
+          )}
+        </Box>
+      </MobileAppShell>
+    );
+  }
+
+  // Desktop version
   return (
     <Container maxWidth="xl" sx={{ py: 3 }}>
       <Paper sx={{ p: 3, mb: 4, borderRadius: 2 }}>
