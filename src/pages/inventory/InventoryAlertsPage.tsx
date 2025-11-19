@@ -2,8 +2,24 @@ import React from 'react';
 import { Box, Typography, Paper } from '@mui/material';
 import { Notifications as NotificationsIcon } from '@mui/icons-material';
 import { InventoryAlertsPanel } from './components/InventoryAlertsPanel';
+import { useIsMobile } from '../../utils/mobile';
+import { MobileAppShell } from '../../navigation/MobileAppShell';
 
 export const InventoryAlertsPage: React.FC = () => {
+  const isMobile = useIsMobile();
+
+  if (isMobile) {
+    return (
+      <MobileAppShell pageTitle="Inventory Alerts">
+        <Box sx={{ p: 2 }}>
+          <Paper sx={{ p: 2 }}>
+            <InventoryAlertsPanel />
+          </Paper>
+        </Box>
+      </MobileAppShell>
+    );
+  }
+
   return (
     <Box sx={{ p: 3 }}>
       {/* Header */}
