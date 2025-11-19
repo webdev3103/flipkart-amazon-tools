@@ -35,6 +35,8 @@ import {
 } from '@mui/icons-material';
 import monitoringService, { ErrorReport, PerformanceMetrics, UserAnalytics } from '../../services/monitoring.service';
 import { formatDistanceToNow } from 'date-fns';
+import { useIsMobile } from '../../utils/mobile';
+import { MobileAppShell } from '../../navigation/MobileAppShell';
 
 interface MonitoringStats {
   errorCount: number;
@@ -44,6 +46,7 @@ interface MonitoringStats {
 }
 
 const MonitoringDashboard: React.FC = () => {
+  const isMobile = useIsMobile();
   const [errors, setErrors] = useState<ErrorReport[]>([]);
   const [performance, setPerformance] = useState<PerformanceMetrics[]>([]);
   const [analytics, setAnalytics] = useState<UserAnalytics[]>([]);
@@ -155,8 +158,8 @@ const MonitoringDashboard: React.FC = () => {
     );
   }
 
-  return (
-    <Box sx={{ padding: 3 }}>
+  const content = (
+    <Box sx={{ padding: isMobile ? 2 : 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
         <Typography variant="h4" gutterBottom>
           Monitoring Dashboard
@@ -405,6 +408,16 @@ const MonitoringDashboard: React.FC = () => {
       )}
     </Box>
   );
+
+  if (isMobile) {
+    return (
+      <MobileAppShell pageTitle="Monitoring">
+        {content}
+      </MobileAppShell>
+    );
+  }
+
+  return content;
 };
 
 export default MonitoringDashboard; 

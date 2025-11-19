@@ -1,8 +1,11 @@
 import React from 'react';
 import { Box, Paper, Typography, Grid } from '@mui/material';
 import { CheckCircle, Speed, Storage } from '@mui/icons-material';
+import { useIsMobile } from '../../utils/mobile';
+import { MobileAppShell } from '../../navigation/MobileAppShell';
 
 const HealthPage: React.FC = () => {
+  const isMobile = useIsMobile();
   const [loading, setLoading] = React.useState(true);
   const [healthData, setHealthData] = React.useState({
     status: 'healthy',
@@ -80,6 +83,115 @@ const HealthPage: React.FC = () => {
       <Box sx={{ p: 3 }}>
         <Typography>Performing health check...</Typography>
       </Box>
+    );
+  }
+
+  if (isMobile) {
+    return (
+      <MobileAppShell pageTitle="Health">
+        <Box sx={{ p: 2 }}>
+          <Grid container spacing={2}>
+            {/* Overall Status */}
+            <Grid item xs={12}>
+              <Paper sx={{ p: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <CheckCircle sx={{ mr: 1 }} />
+                  <Typography variant="h6">Overall Status</Typography>
+                </Box>
+                <Box
+                  sx={{
+                    p: 1,
+                    borderRadius: 1,
+                    backgroundColor: getStatusColor(healthData.status),
+                    color: 'white',
+                    textAlign: 'center',
+                    mb: 1
+                  }}
+                >
+                  <Typography variant="h6">
+                    {healthData.status.toUpperCase()}
+                  </Typography>
+                </Box>
+                <Typography variant="body2">Version: {healthData.version}</Typography>
+                <Typography variant="body2">
+                  Last Check: {new Date(healthData.timestamp).toLocaleString()}
+                </Typography>
+              </Paper>
+            </Grid>
+
+            {/* Services Status */}
+            <Grid item xs={12}>
+              <Paper sx={{ p: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <Storage sx={{ mr: 1 }} />
+                  <Typography variant="h6">Services</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  {Object.entries(healthData.services).map(([service, status]) => (
+                    <Box key={service} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography>{service}:</Typography>
+                      <Box
+                        sx={{
+                          px: 1,
+                          py: 0.5,
+                          borderRadius: 1,
+                          backgroundColor: getStatusColor(status),
+                          color: 'white',
+                          fontSize: '0.75rem'
+                        }}
+                      >
+                        {status}
+                      </Box>
+                    </Box>
+                  ))}
+                </Box>
+              </Paper>
+            </Grid>
+
+            {/* Metrics */}
+            <Grid item xs={12}>
+              <Paper sx={{ p: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <Speed sx={{ mr: 1 }} />
+                  <Typography variant="h6">Metrics</Typography>
+                </Box>
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <Box sx={{ textAlign: 'center', py: 1 }}>
+                      <Typography variant="h4" color="primary">
+                        {formatUptime(healthData.metrics.uptime)}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        Uptime
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Box sx={{ textAlign: 'center', py: 1 }}>
+                      <Typography variant="h5" color="primary">
+                        0 MB
+                      </Typography>
+                      <Typography variant="caption" color="textSecondary">
+                        Memory Usage
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Box sx={{ textAlign: 'center', py: 1 }}>
+                      <Typography variant="h5" color="primary">
+                        {healthData.metrics.responseTime.toFixed(2)}ms
+                      </Typography>
+                      <Typography variant="caption" color="textSecondary">
+                        Response Time
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+              </Paper>
+            </Grid>
+          </Grid>
+        </Box>
+      </MobileAppShell>
     );
   }
 
