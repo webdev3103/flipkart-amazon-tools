@@ -151,7 +151,6 @@ export const InlineHistoricalActivity: React.FC<Props> = ({
         gap: 2,
         p: 1.5,
         borderRadius: 1,
-        backgroundColor: 'background.default',
         '&:hover': {
           backgroundColor: 'action.hover',
         },
@@ -200,7 +199,7 @@ export const InlineHistoricalActivity: React.FC<Props> = ({
       elevation={0}
       sx={{
         p: 2,
-        backgroundColor: 'grey.50',
+        backgroundColor: 'transparent',
         borderTop: '1px solid',
         borderColor: 'divider',
       }}
