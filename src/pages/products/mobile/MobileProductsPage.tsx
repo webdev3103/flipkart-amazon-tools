@@ -1,15 +1,14 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Box, Typography, CircularProgress, Alert, IconButton } from '@mui/material';
-import { Add as AddIcon, QrCodeScanner as ScanIcon } from '@mui/icons-material';
+import { Box, Typography, CircularProgress, Alert, IconButton, Button, Snackbar } from '@mui/material';
+import { QrCodeScanner as ScanIcon, UploadFile as UploadIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { MobileAppShell } from '../../../navigation/MobileAppShell';
-import { MobileFAB } from '../../../components/mobile/MobileFAB';
 import { MobileProductCard } from './components/MobileProductCard';
 import { MobileProductSearch } from './components/MobileProductSearch';
 import { MobileProductDetailsModal } from './components/MobileProductDetailsModal';
 import { MobileBarcodeScanner } from '../../../components/mobile/MobileBarcodeScanner';
 import { useAppSelector, useAppDispatch } from '../../../store/hooks';
-import { fetchProducts } from '../../../store/slices/productsSlice';
+import { fetchProducts, importProducts } from '../../../store/slices/productsSlice';
 import { usePullToRefresh } from '../../../hooks/usePullToRefresh';
 import { useInfiniteScroll } from '../../../hooks/useInfiniteScroll';
 import { ProductWithCategoryGroup } from '../../../services/product.service';
@@ -30,6 +29,7 @@ export const MobileProductsPage: React.FC = () => {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [displayCount, setDisplayCount] = useState(20);
   const [scannerActive, setScannerActive] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
 
   const { state: pullState, containerRef } = usePullToRefresh(
     async () => {
@@ -88,8 +88,24 @@ export const MobileProductsPage: React.FC = () => {
     setDetailsOpen(true);
   };
 
-  const handleAddProduct = () => {
-    navigate('/products/new');
+  const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls') && !file.name.endsWith('.txt')) {
+      setImportError('Please upload an Excel file (.xlsx or .xls)');
+      return;
+    }
+
+    try {
+      setImportError(null);
+      await dispatch(importProducts({ file, updateExisting: true })).unwrap();
+    } catch {
+      setImportError('Failed to import products. Please check the file format.');
+    }
+
+    // Reset the input
+    event.target.value = '';
   };
 
   const handleEdit = () => {
@@ -133,13 +149,28 @@ export const MobileProductsPage: React.FC = () => {
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
               {filteredProducts.length} {filteredProducts.length === 1 ? 'Product' : 'Products'}
             </Typography>
-            <IconButton
-              onClick={() => setScannerActive(true)}
-              sx={{ minWidth: 44, minHeight: 44 }}
-              aria-label="Scan barcode"
-            >
-              <ScanIcon />
-            </IconButton>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <IconButton
+                component="label"
+                sx={{ minWidth: 44, minHeight: 44 }}
+                aria-label="Import products"
+              >
+                <UploadIcon />
+                <input
+                  type="file"
+                  hidden
+                  accept=".xlsx,.xls,.txt"
+                  onChange={handleImport}
+                />
+              </IconButton>
+              <IconButton
+                onClick={() => setScannerActive(true)}
+                sx={{ minWidth: 44, minHeight: 44 }}
+                aria-label="Scan barcode"
+              >
+                <ScanIcon />
+              </IconButton>
+            </Box>
           </Box>
         </Box>
 
@@ -162,15 +193,31 @@ export const MobileProductsPage: React.FC = () => {
         )}
 
         {!loading && filteredProducts.length === 0 && (
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, p: 4, textAlign: 'center' }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, p: 4, textAlign: 'center', gap: 2 }}>
             <Typography variant="h6" color="text.secondary" gutterBottom>
               No products found
             </Typography>
             <Typography variant="body2" color="text.secondary">
               {searchValue || platformFilter !== 'all' || categoryFilter
                 ? 'Try adjusting your search or filters'
-                : 'Add your first product to get started'}
+                : 'Import products from an Excel file to get started'}
             </Typography>
+            {!searchValue && platformFilter === 'all' && !categoryFilter && (
+              <Button
+                variant="contained"
+                component="label"
+                startIcon={<UploadIcon />}
+                sx={{ mt: 2 }}
+              >
+                Import Products
+                <input
+                  type="file"
+                  hidden
+                  accept=".xlsx,.xls,.txt"
+                  onChange={handleImport}
+                />
+              </Button>
+            )}
           </Box>
         )}
 
@@ -199,15 +246,18 @@ export const MobileProductsPage: React.FC = () => {
           onEdit={handleEdit}
         />
 
-        <MobileFAB onClick={handleAddProduct} bottomOffset={80} aria-label="Add product">
-          <AddIcon />
-        </MobileFAB>
-
         <MobileBarcodeScanner
           isActive={scannerActive}
           onScan={handleBarcodeScan}
           onClose={() => setScannerActive(false)}
           instructions="Scan product barcode or SKU"
+        />
+
+        <Snackbar
+          open={!!importError}
+          autoHideDuration={6000}
+          onClose={() => setImportError(null)}
+          message={importError}
         />
       </Box>
     </MobileAppShell>

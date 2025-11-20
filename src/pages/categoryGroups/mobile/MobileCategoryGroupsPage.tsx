@@ -1,9 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Box, Typography, CircularProgress, Alert } from '@mui/material';
-import { Add as AddIcon } from '@mui/icons-material';
+import { Info as InfoIcon } from '@mui/icons-material';
 import { MobileAppShell } from '../../../navigation/MobileAppShell';
-import { MobileFAB } from '../../../components/mobile/MobileFAB';
 import { MobileSearchInput } from '../../../components/mobile/MobileSearchInput';
 import { MobileCategoryGroupCard } from './components/MobileCategoryGroupCard';
 import { useAppSelector, useAppDispatch } from '../../../store/hooks';
@@ -37,7 +35,6 @@ import { useInfiniteScroll } from '../../../hooks/useInfiniteScroll';
  */
 export const MobileCategoryGroupsPage: React.FC = () => {
   const dispatch = useAppDispatch();
-  const navigate = useNavigate();
 
   const categoryGroups = useAppSelector(selectCategoryGroups);
   const loading = useAppSelector(selectCategoryGroupsLoading);
@@ -86,14 +83,9 @@ export const MobileCategoryGroupsPage: React.FC = () => {
   });
 
   // Handle group card tap
-  const handleGroupTap = (group: CategoryGroupWithStats) => {
-    // Navigate to group details or edit page
-    navigate(`/category-groups/${group.id}`);
-  };
-
-  // Handle add new group
-  const handleAddGroup = () => {
-    navigate('/category-groups/new');
+  const handleGroupTap = (_group: CategoryGroupWithStats) => {
+    // Category groups should be managed on desktop - mobile is view-only
+    // Could implement a details modal here if needed
   };
 
   // Retry loading on error
@@ -102,7 +94,7 @@ export const MobileCategoryGroupsPage: React.FC = () => {
   };
 
   return (
-    <MobileAppShell>
+    <MobileAppShell pageTitle="Category Groups">
       <Box
         ref={containerRef}
         sx={{
@@ -185,23 +177,19 @@ export const MobileCategoryGroupsPage: React.FC = () => {
               minHeight: 300,
               px: 4,
               textAlign: 'center',
+              gap: 2,
             }}
           >
+            <InfoIcon sx={{ fontSize: 48, color: 'text.secondary' }} />
             <Typography variant="h6" color="text.secondary" gutterBottom>
               No Category Groups
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              Create your first category group to organize categories with colors and inventory
-              tracking.
+            <Typography variant="body2" color="text.secondary">
+              Category groups help organize categories with colors and inventory tracking.
             </Typography>
-            <Typography
-              variant="button"
-              color="primary"
-              sx={{ cursor: 'pointer', textDecoration: 'underline' }}
-              onClick={handleAddGroup}
-            >
-              Add Category Group
-            </Typography>
+            <Alert severity="info" sx={{ mt: 2 }}>
+              Category groups can be created and managed on the desktop version of this app.
+            </Alert>
           </Box>
         )}
 
@@ -258,11 +246,6 @@ export const MobileCategoryGroupsPage: React.FC = () => {
           </Box>
         )}
       </Box>
-
-      {/* Floating Action Button */}
-      <MobileFAB onClick={handleAddGroup} color="primary">
-        <AddIcon />
-      </MobileFAB>
     </MobileAppShell>
   );
 };

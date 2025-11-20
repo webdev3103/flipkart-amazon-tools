@@ -1,9 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Box, Typography, CircularProgress, Alert } from '@mui/material';
-import { Add as AddIcon } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { Box, Typography, CircularProgress, Alert, IconButton, Button } from '@mui/material';
+import { Upload as UploadIcon, Info as InfoIcon } from '@mui/icons-material';
 import { MobileAppShell } from '../../../navigation/MobileAppShell';
-import { MobileFAB } from '../../../components/mobile/MobileFAB';
 import { MobileSearchInput } from '../../../components/mobile/MobileSearchInput';
 import { MobileCategoryCard } from './components/MobileCategoryCard';
 import { useAppSelector, useAppDispatch } from '../../../store/hooks';
@@ -11,10 +9,10 @@ import { fetchCategories } from '../../../store/slices/categoriesSlice';
 import { usePullToRefresh } from '../../../hooks/usePullToRefresh';
 import { useInfiniteScroll } from '../../../hooks/useInfiniteScroll';
 import { CategoryWithGroup } from '../../../types/category';
+import CategoryImportModal from '../components/CategoryImportSection';
 
 export const MobileCategoriesPage: React.FC = () => {
   const dispatch = useAppDispatch();
-  const navigate = useNavigate();
 
   const categories = useAppSelector(state => state.categories?.items || []);
   const loading = useAppSelector(state => state.categories?.loading || false);
@@ -22,6 +20,7 @@ export const MobileCategoriesPage: React.FC = () => {
 
   const [searchValue, setSearchValue] = useState('');
   const [displayCount, setDisplayCount] = useState(20);
+  const [importModalOpen, setImportModalOpen] = useState(false);
 
   const { state: pullState, containerRef } = usePullToRefresh(
     async () => {
@@ -56,14 +55,14 @@ export const MobileCategoriesPage: React.FC = () => {
     dispatch(fetchCategories());
   }, [dispatch]);
 
-  const handleCategoryTap = (category: CategoryWithGroup) => {
-    if (category.id) {
-      navigate(`/categories/edit/${category.id}`);
-    }
+  const handleCategoryTap = (_category: CategoryWithGroup) => {
+    // Categories should be managed on desktop - mobile is view-only
+    // Could implement a details modal here if needed
   };
 
-  const handleAddCategory = () => {
-    navigate('/categories/new');
+  const handleImportSuccess = () => {
+    dispatch(fetchCategories());
+    setImportModalOpen(false);
   };
 
   return (
@@ -73,10 +72,17 @@ export const MobileCategoriesPage: React.FC = () => {
           <Box sx={{ px: 2, pt: 2, pb: 1 }}>
             <MobileSearchInput value={searchValue} onChange={setSearchValue} placeholder="Search categories..." autoFocus={false} />
           </Box>
-          <Box sx={{ px: 2, pb: 1.5 }}>
+          <Box sx={{ px: 2, pb: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
               {filteredCategories.length} {filteredCategories.length === 1 ? 'Category' : 'Categories'}
             </Typography>
+            <IconButton
+              onClick={() => setImportModalOpen(true)}
+              sx={{ minWidth: 44, minHeight: 44 }}
+              aria-label="Import categories"
+            >
+              <UploadIcon />
+            </IconButton>
           </Box>
         </Box>
 
@@ -99,13 +105,24 @@ export const MobileCategoriesPage: React.FC = () => {
         )}
 
         {!loading && filteredCategories.length === 0 && (
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, p: 4, textAlign: 'center' }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, p: 4, textAlign: 'center', gap: 2 }}>
+            <InfoIcon sx={{ fontSize: 48, color: 'text.secondary' }} />
             <Typography variant="h6" color="text.secondary" gutterBottom>
               No categories found
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              {searchValue ? 'Try a different search term' : 'Add your first category to get started'}
+              {searchValue ? 'Try a different search term' : 'Import categories to get started'}
             </Typography>
+            {!searchValue && (
+              <Button
+                variant="contained"
+                onClick={() => setImportModalOpen(true)}
+                startIcon={<UploadIcon />}
+                sx={{ mt: 2 }}
+              >
+                Import Categories
+              </Button>
+            )}
           </Box>
         )}
 
@@ -123,9 +140,11 @@ export const MobileCategoriesPage: React.FC = () => {
           </Box>
         )}
 
-        <MobileFAB onClick={handleAddCategory} bottomOffset={80} aria-label="Add category">
-          <AddIcon />
-        </MobileFAB>
+        <CategoryImportModal
+          open={importModalOpen}
+          onClose={() => setImportModalOpen(false)}
+          onImportSuccess={handleImportSuccess}
+        />
       </Box>
     </MobileAppShell>
   );
