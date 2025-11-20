@@ -358,12 +358,40 @@ jobs:
 
             // Add this as a comment to PR if it's a pull request
             if (context.eventName === 'pull_request') {
-              await github.rest.issues.createComment({
+              // Add unique identifier for this workflow's comment
+              const commentIdentifier = '<!-- MOBILE_CI_WORKFLOW_STATUS -->';
+              const commentBody = commentIdentifier + '\n' + summary;
+
+              // Find existing comment from this workflow
+              const { data: comments } = await github.rest.issues.listComments({
                 issue_number: context.issue.number,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                body: summary
               });
+
+              const existingComment = comments.find(comment =>
+                comment.user.type === 'Bot' &&
+                comment.body.includes(commentIdentifier)
+              );
+
+              // Update existing comment or create new one
+              if (existingComment) {
+                await github.rest.issues.updateComment({
+                  comment_id: existingComment.id,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  body: commentBody
+                });
+                console.log('✅ Updated existing mobile CI PR comment');
+              } else {
+                await github.rest.issues.createComment({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  body: commentBody
+                });
+                console.log('✅ Created new mobile CI PR comment');
+              }
             }
 
             // Add to step summary
