@@ -3,8 +3,36 @@ import { Box, Typography, Paper } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
 import { QuickActionsPanel } from './components/QuickActionsPanel';
 import { ManualAdjustmentModal } from './components';
+import { useIsMobile } from '../../utils/mobile';
+import { MobileAppShell } from '../../navigation/MobileAppShell';
 
 export const ManualAdjustmentPage: React.FC = () => {
+  const isMobile = useIsMobile();
+
+  if (isMobile) {
+    return (
+      <MobileAppShell pageTitle="Manual Adjustment">
+        <Box sx={{ p: 2 }}>
+          {/* Quick Actions Panel */}
+          <Paper sx={{ p: 2, mb: 2 }}>
+            <QuickActionsPanel />
+          </Paper>
+
+          {/* Manual Adjustment Interface */}
+          <Paper sx={{ p: 2 }}>
+            <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
+              Adjust Inventory Levels
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Select a category group and adjust inventory levels manually.
+            </Typography>
+            <ManualAdjustmentModal open={true} onClose={() => {}} />
+          </Paper>
+        </Box>
+      </MobileAppShell>
+    );
+  }
+
   return (
     <Box sx={{ p: 3 }}>
       {/* Header */}

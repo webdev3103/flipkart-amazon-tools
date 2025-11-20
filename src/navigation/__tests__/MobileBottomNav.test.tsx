@@ -54,12 +54,14 @@ describe('MobileBottomNav', () => {
       expect(bottomNav).toBeInTheDocument();
     });
 
-    it('should render all three navigation tabs', () => {
+    it('should render all five navigation tabs', () => {
       renderWithRouter();
 
+      expect(screen.getByText('Home')).toBeInTheDocument();
       expect(screen.getByText('Orders')).toBeInTheDocument();
       expect(screen.getByText('Products')).toBeInTheDocument();
       expect(screen.getByText('Categories')).toBeInTheDocument();
+      expect(screen.getByText('Inventory')).toBeInTheDocument();
     });
 
     it('should render icons for all tabs', () => {
@@ -67,7 +69,7 @@ describe('MobileBottomNav', () => {
 
       // Material-UI BottomNavigationAction renders icons within buttons
       const buttons = screen.getAllByRole('button');
-      expect(buttons).toHaveLength(3);
+      expect(buttons).toHaveLength(5);
 
       // Each button should have an svg icon
       buttons.forEach(button => {
@@ -78,13 +80,17 @@ describe('MobileBottomNav', () => {
     it('should show labels for all tabs', () => {
       renderWithRouter();
 
+      const homeButton = screen.getByRole('button', { name: /home/i });
       const ordersButton = screen.getByRole('button', { name: /orders/i });
       const productsButton = screen.getByRole('button', { name: /products/i });
       const categoriesButton = screen.getByRole('button', { name: /categories/i });
+      const inventoryButton = screen.getByRole('button', { name: /inventory/i });
 
+      expect(homeButton).toBeVisible();
       expect(ordersButton).toBeVisible();
       expect(productsButton).toBeVisible();
       expect(categoriesButton).toBeVisible();
+      expect(inventoryButton).toBeVisible();
     });
   });
 
@@ -124,11 +130,11 @@ describe('MobileBottomNav', () => {
       expect(categoriesButton).toHaveClass('Mui-selected');
     });
 
-    it('should default to orders tab when route does not match any tab', () => {
+    it('should default to home tab when route does not match any tab', () => {
       renderWithRouter('/unknown-route');
 
-      const ordersButton = screen.getByRole('button', { name: /orders/i });
-      expect(ordersButton).toHaveClass('Mui-selected');
+      const homeButton = screen.getByRole('button', { name: /home/i });
+      expect(homeButton).toHaveClass('Mui-selected');
     });
   });
 
@@ -285,9 +291,9 @@ describe('MobileBottomNav', () => {
     it('should handle root route', () => {
       renderWithRouter('/');
 
-      // Should default to first tab (orders)
-      const ordersButton = screen.getByRole('button', { name: /orders/i });
-      expect(ordersButton).toHaveClass('Mui-selected');
+      // Should match home tab
+      const homeButton = screen.getByRole('button', { name: /home/i });
+      expect(homeButton).toHaveClass('Mui-selected');
     });
 
     it('should handle routes with query parameters', () => {

@@ -21,11 +21,12 @@ import { Column, DataTable } from "../../../components/DataTable/DataTable";
 import { InventoryMovement, MovementFilters } from "../../../types/inventory";
 import { InventoryMovementsToolbar } from "./InventoryMovementsToolbar";
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { 
-  fetchInventoryMovements, 
+import {
+  fetchInventoryMovements,
   setMovementFilters,
   clearMovementFilters
 } from '../../../store/slices/inventorySlice';
+import { fetchCategoryGroups, selectCategoryGroups } from '../../../store/slices/categoryGroupsSlice';
 import type { RootState } from '../../../store';
 
 interface Props {
@@ -39,18 +40,19 @@ export const InventoryMovementsTable: React.FC<Props> = ({
 }) => {
   const theme = useTheme();
   const dispatch = useAppDispatch();
-  const inventoryMovements = useAppSelector((state: RootState) => 
+  const inventoryMovements = useAppSelector((state: RootState) =>
     state.inventory.filteredInventoryMovements
   );
-  const loading = useAppSelector((state: RootState) => 
+  const loading = useAppSelector((state: RootState) =>
     state.inventory.loading.inventoryMovements
   );
-  const errors = useAppSelector((state: RootState) => 
+  const errors = useAppSelector((state: RootState) =>
     state.inventory.error.inventoryMovements
   );
-  const filters = useAppSelector((state: RootState) => 
+  const filters = useAppSelector((state: RootState) =>
     state.inventory.filters.movements
   );
+  const categoryGroups = useAppSelector(selectCategoryGroups);
   
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
@@ -62,6 +64,11 @@ export const InventoryMovementsTable: React.FC<Props> = ({
     dispatch(fetchInventoryMovements(filters));
   }, [dispatch, filters]);
 
+  useEffect(() => {
+    // Fetch category groups to display names instead of IDs
+    dispatch(fetchCategoryGroups());
+  }, [dispatch]);
+
   // Show error snackbar when there are errors
   useEffect(() => {
     if (errors) {
@@ -70,6 +77,11 @@ export const InventoryMovementsTable: React.FC<Props> = ({
       setSnackbarOpen(true);
     }
   }, [errors]);
+
+  const getCategoryGroupName = (categoryGroupId: string): string => {
+    const categoryGroup = categoryGroups.find(group => group.id === categoryGroupId);
+    return categoryGroup?.name || categoryGroupId;
+  };
 
   const handleFilterChange = (newFilters: Partial<MovementFilters>) => {
     dispatch(setMovementFilters(newFilters));
@@ -333,7 +345,7 @@ export const InventoryMovementsTable: React.FC<Props> = ({
       headers.join(','),
       ...inventoryMovements.map(movement => [
         `"${formatTimestamp(movement.createdAt)}"`,
-        `"${movement.categoryGroupId}"`,
+        `"${getCategoryGroupName(movement.categoryGroupId)}"`,
         `"${getMovementTypeLabel(movement.movementType)}"`,
         `"${formatQuantityChange(movement)}"`,
         movement.previousInventory,
@@ -398,7 +410,7 @@ export const InventoryMovementsTable: React.FC<Props> = ({
       priorityOnMobile: true,
       format: (value) => (
         <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-          {value as string}
+          {getCategoryGroupName(value as string)}
         </Typography>
       ),
     },

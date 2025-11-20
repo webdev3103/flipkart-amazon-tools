@@ -26,7 +26,7 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { format } from "date-fns";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense, lazy } from "react";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import {
   mergePDFs,
@@ -59,8 +59,45 @@ import {
 import { selectIsAuthenticated } from "../../store/slices/authSlice";
 import { FileUploadSection } from "./components/FileUploadSection";
 import { BarcodeToggle } from "./components/BarcodeToggle";
+import { useIsMobile } from "../../utils/mobile";
+
+// Lazy load mobile component
+const MobileHomePage = lazy(() =>
+  import("./mobile/MobileHomePage").then((module) => ({
+    default: module.MobileHomePage,
+  }))
+);
 
 export const HomePage: React.FC = () => {
+  const isMobile = useIsMobile();
+
+  // If mobile, render mobile version
+  if (isMobile) {
+    return (
+      <Suspense
+        fallback={
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              minHeight: "100vh",
+            }}
+          >
+            <CircularProgress />
+          </Box>
+        }
+      >
+        <MobileHomePage />
+      </Suspense>
+    );
+  }
+
+  // Desktop version follows below
+  return <DesktopHomePage />;
+};
+
+const DesktopHomePage: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 

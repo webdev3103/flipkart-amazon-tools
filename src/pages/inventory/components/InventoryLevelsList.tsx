@@ -1,4 +1,5 @@
 import TuneIcon from "@mui/icons-material/Tune";
+import HistoryIcon from "@mui/icons-material/History";
 import {
   Box,
   Chip,
@@ -7,23 +8,31 @@ import {
   Alert,
   Tooltip,
   Typography,
+  Collapse,
+  TableContainer,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
 } from "@mui/material";
 import React, { useState, useEffect } from "react";
-import { Column, DataTable } from "../../../components/DataTable/DataTable";
 import { InventoryLevel, InventoryFilters, InventoryStatus } from "../../../types/inventory";
 import { InventoryLevelsToolbar } from "./InventoryLevelsToolbar";
 import EditableThresholdCell from "./EditableThresholdCell";
 import EditableInventoryLevelCell from "./EditableInventoryLevelCell";
+import { InlineHistoricalActivity } from "./InlineHistoricalActivity";
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { 
-  fetchInventoryLevels, 
-  selectInventoryLevels, 
+import {
+  fetchInventoryLevels,
+  selectInventoryLevels,
   selectInventoryLoading,
   selectInventoryErrors,
   setInventoryFilters,
   clearInventoryFilters,
   selectInventoryFilters
 } from '../../../store/slices/inventorySlice';
+import { Paper, TablePagination, TableSortLabel } from "@mui/material";
 
 interface Props {
   onManualAdjustment?: (inventoryLevel: InventoryLevel) => void;
@@ -37,10 +46,15 @@ export const InventoryLevelsList: React.FC<Props> = ({
   const loading = useAppSelector(selectInventoryLoading);
   const errors = useAppSelector(selectInventoryErrors);
   const filters = useAppSelector(selectInventoryFilters);
-  
+
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+  const [orderBy, setOrderBy] = useState<keyof InventoryLevel>('name');
+  const [order, setOrder] = useState<'asc' | 'desc'>('asc');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
 
   useEffect(() => {
     dispatch(fetchInventoryLevels());
@@ -71,6 +85,45 @@ export const InventoryLevelsList: React.FC<Props> = ({
   const handleCloseSnackbar = () => {
     setSnackbarOpen(false);
   };
+
+  const handleRowClick = (categoryGroupId: string) => {
+    setExpandedRowId(prev => prev === categoryGroupId ? null : categoryGroupId);
+  };
+
+  const handleRequestSort = (property: keyof InventoryLevel) => {
+    const isAsc = orderBy === property && order === 'asc';
+    setOrder(isAsc ? 'desc' : 'asc');
+    setOrderBy(property);
+  };
+
+  const handleChangePage = (_event: unknown, newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  // Sorting and pagination
+  const sortedData = React.useMemo(() => {
+    const sorted = [...inventoryLevels].sort((a, b) => {
+      const aValue = a[orderBy];
+      const bValue = b[orderBy];
+
+      if (aValue === bValue) return 0;
+      if (aValue === null || aValue === undefined) return 1;
+      if (bValue === null || bValue === undefined) return -1;
+
+      const comparison = aValue < bValue ? -1 : 1;
+      return order === 'asc' ? comparison : -comparison;
+    });
+    return sorted;
+  }, [inventoryLevels, orderBy, order]);
+
+  const paginatedData = React.useMemo(() => {
+    return sortedData.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  }, [sortedData, page, rowsPerPage]);
 
   // WCAG AAA compliant status colors (7:1 contrast ratio with white text)
   const getStatusColor = (status: InventoryStatus): string => {
@@ -130,123 +183,30 @@ export const InventoryLevelsList: React.FC<Props> = ({
     }
   };
 
-  const columns: Column<InventoryLevel>[] = [
-    { 
-      id: "name", 
-      label: "Category Group", 
-      priorityOnMobile: true,
-    },
-    {
-      id: "currentInventory",
-      label: "Current Inventory",
-      align: "right",
-      format: (value, row) => {
-        if (!row) return <Typography variant="body2">-</Typography>;
-        return (
-          <EditableInventoryLevelCell
-            inventoryLevel={row}
-            onUpdateSuccess={(categoryGroupId, newLevel) => {
-              setSnackbarMessage(`Successfully updated inventory to ${formatInventoryValue(newLevel, row.inventoryUnit)}`);
-              setSnackbarSeverity('success');
-              setSnackbarOpen(true);
-              handleRefresh(); // Refresh the data after successful update
-            }}
-            onUpdateError={(categoryGroupId, error) => {
-              setSnackbarMessage(`Failed to update inventory: ${error}`);
-              setSnackbarSeverity('error');
-              setSnackbarOpen(true);
-            }}
-          />
-        );
-      },
-    },
-    {
-      id: "inventoryType",
-      label: "Type",
-      format: (value) => {
-        const type = value as string;
-        return (
-          <Chip
-            label={type === 'weight' ? 'Weight' : 'Quantity'}
-            size="small"
-            color={type === 'weight' ? 'primary' : 'secondary'}
-            variant="outlined"
-          />
-        );
-      },
-    },
-    {
-      id: "minimumThreshold",
-      label: "Min Threshold",
-      align: "right",
-      format: (value, row) => {
-        if (!row) return <Typography variant="body2">-</Typography>;
-        return (
-          <EditableThresholdCell
-            inventoryLevel={row}
-            onUpdateSuccess={(categoryGroupId, newThreshold) => {
-              setSnackbarMessage(`Successfully updated threshold to ${newThreshold} ${row.inventoryUnit}`);
-              setSnackbarSeverity('success');
-              setSnackbarOpen(true);
-              handleRefresh(); // Refresh the data after successful update
-            }}
-            onUpdateError={(categoryGroupId, error) => {
-              setSnackbarMessage(`Failed to update threshold: ${error}`);
-              setSnackbarSeverity('error');
-              setSnackbarOpen(true);
-            }}
-          />
-        );
-      },
-    },
-    {
-      id: "status",
-      label: "Status",
-      format: (value) => {
-        const status = value as InventoryStatus;
-        return (
-          <Chip
-            label={getStatusLabel(status)}
-            size="small"
-            sx={{
-              backgroundColor: getStatusColor(status),
-              color: '#ffffff', // Pure white for maximum contrast
-              fontWeight: 'medium',
-              '&:hover': {
-                backgroundColor: getStatusColor(status),
-                filter: 'brightness(0.9)',
-              },
-            }}
-          />
-        );
-      },
-      priorityOnMobile: true,
-    },
-    {
-      id: "lastInventoryUpdate",
-      label: "Last Updated",
-      format: (value) => (
-        <Typography variant="body2" color="text.secondary">
-          {formatLastUpdated(value)}
-        </Typography>
-      ),
-    },
-    {
-      id: "actions",
-      label: "Actions",
-      align: "center",
-      format: (_, row) => renderActions(row as InventoryLevel),
-    },
-  ];
-
   const renderActions = (inventoryLevel: InventoryLevel) => (
     <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+      <Tooltip title="View History">
+        <IconButton
+          size="small"
+          aria-label={`history-${inventoryLevel.categoryGroupId}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleRowClick(inventoryLevel.categoryGroupId);
+          }}
+          color={expandedRowId === inventoryLevel.categoryGroupId ? 'primary' : 'default'}
+        >
+          <HistoryIcon />
+        </IconButton>
+      </Tooltip>
       {onManualAdjustment && (
         <Tooltip title="Adjust Inventory">
           <IconButton
             size="small"
             aria-label={`adjust-${inventoryLevel.categoryGroupId}`}
-            onClick={() => onManualAdjustment(inventoryLevel)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onManualAdjustment(inventoryLevel);
+            }}
             color="primary"
           >
             <TuneIcon />
@@ -266,45 +226,185 @@ export const InventoryLevelsList: React.FC<Props> = ({
         onRefresh={handleRefresh}
       />
 
-      <DataTable
-        columns={columns}
-        data={inventoryLevels}
-        defaultSortColumn="name"
-        defaultSortDirection="asc"
-        rowsPerPageOptions={[10, 25, 50, 100]}
-        defaultRowsPerPage={25}
-        getRowId={(row) => row.categoryGroupId}
-      />
-
-      {loading.inventoryLevels && (
-        <Box 
-          sx={{ 
-            display: 'flex', 
-            justifyContent: 'center', 
-            alignItems: 'center', 
-            p: 3 
-          }}
-        >
-          <Typography variant="body2" color="text.secondary">
-            Loading inventory levels...
-          </Typography>
-        </Box>
-      )}
-
-      {!loading.inventoryLevels && inventoryLevels.length === 0 && (
-        <Box 
-          sx={{ 
-            display: 'flex', 
-            justifyContent: 'center', 
-            alignItems: 'center', 
-            p: 3 
-          }}
-        >
-          <Typography variant="body2" color="text.secondary">
-            No inventory levels found.
-          </Typography>
-        </Box>
-      )}
+      <Paper sx={{ width: '100%', overflow: 'hidden' }}>
+        <TableContainer>
+          <Table stickyHeader>
+            <TableHead>
+              <TableRow>
+                <TableCell>
+                  <TableSortLabel
+                    active={orderBy === 'name'}
+                    direction={orderBy === 'name' ? order : 'asc'}
+                    onClick={() => handleRequestSort('name')}
+                  >
+                    Category Group
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell align="right">
+                  <TableSortLabel
+                    active={orderBy === 'currentInventory'}
+                    direction={orderBy === 'currentInventory' ? order : 'asc'}
+                    onClick={() => handleRequestSort('currentInventory')}
+                  >
+                    Current Inventory
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell>Type</TableCell>
+                <TableCell align="right">
+                  <TableSortLabel
+                    active={orderBy === 'minimumThreshold'}
+                    direction={orderBy === 'minimumThreshold' ? order : 'asc'}
+                    onClick={() => handleRequestSort('minimumThreshold')}
+                  >
+                    Min Threshold
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell>
+                  <TableSortLabel
+                    active={orderBy === 'status'}
+                    direction={orderBy === 'status' ? order : 'asc'}
+                    onClick={() => handleRequestSort('status')}
+                  >
+                    Status
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell>
+                  <TableSortLabel
+                    active={orderBy === 'lastInventoryUpdate'}
+                    direction={orderBy === 'lastInventoryUpdate' ? order : 'asc'}
+                    onClick={() => handleRequestSort('lastInventoryUpdate')}
+                  >
+                    Last Updated
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell align="center">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {loading.inventoryLevels && inventoryLevels.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} align="center">
+                    <Typography variant="body2" color="text.secondary" sx={{ py: 3 }}>
+                      Loading inventory levels...
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ) : !loading.inventoryLevels && inventoryLevels.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} align="center">
+                    <Typography variant="body2" color="text.secondary" sx={{ py: 3 }}>
+                      No inventory levels found.
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                paginatedData.map((row) => (
+                  <React.Fragment key={row.categoryGroupId}>
+                    <TableRow
+                      hover
+                      onClick={() => handleRowClick(row.categoryGroupId)}
+                      sx={{
+                        cursor: 'pointer',
+                        '& > *': { borderBottom: 'unset' }
+                      }}
+                    >
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                          {row.name}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="right">
+                        <EditableInventoryLevelCell
+                          inventoryLevel={row}
+                          onUpdateSuccess={(categoryGroupId, newLevel) => {
+                            setSnackbarMessage(`Successfully updated inventory to ${formatInventoryValue(newLevel, row.inventoryUnit)}`);
+                            setSnackbarSeverity('success');
+                            setSnackbarOpen(true);
+                            handleRefresh();
+                          }}
+                          onUpdateError={(categoryGroupId, error) => {
+                            setSnackbarMessage(`Failed to update inventory: ${error}`);
+                            setSnackbarSeverity('error');
+                            setSnackbarOpen(true);
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={row.inventoryType === 'weight' ? 'Weight' : 'Quantity'}
+                          size="small"
+                          color={row.inventoryType === 'weight' ? 'primary' : 'secondary'}
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell align="right">
+                        <EditableThresholdCell
+                          inventoryLevel={row}
+                          onUpdateSuccess={(categoryGroupId, newThreshold) => {
+                            setSnackbarMessage(`Successfully updated threshold to ${newThreshold} ${row.inventoryUnit}`);
+                            setSnackbarSeverity('success');
+                            setSnackbarOpen(true);
+                            handleRefresh();
+                          }}
+                          onUpdateError={(categoryGroupId, error) => {
+                            setSnackbarMessage(`Failed to update threshold: ${error}`);
+                            setSnackbarSeverity('error');
+                            setSnackbarOpen(true);
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={getStatusLabel(row.status)}
+                          size="small"
+                          sx={{
+                            backgroundColor: getStatusColor(row.status),
+                            color: '#ffffff',
+                            fontWeight: 'medium',
+                            '&:hover': {
+                              backgroundColor: getStatusColor(row.status),
+                              filter: 'brightness(0.9)',
+                            },
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" color="text.secondary">
+                          {formatLastUpdated(row.lastInventoryUpdate)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="center">
+                        {renderActions(row)}
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={7}>
+                        <Collapse in={expandedRowId === row.categoryGroupId} timeout="auto" unmountOnExit>
+                          <Box sx={{ margin: 1 }}>
+                            <InlineHistoricalActivity
+                              categoryGroupId={row.categoryGroupId}
+                              onClose={() => setExpandedRowId(null)}
+                            />
+                          </Box>
+                        </Collapse>
+                      </TableCell>
+                    </TableRow>
+                  </React.Fragment>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        <TablePagination
+          rowsPerPageOptions={[10, 25, 50, 100]}
+          component="div"
+          count={sortedData.length}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+        />
+      </Paper>
 
       <Snackbar
         open={snackbarOpen}

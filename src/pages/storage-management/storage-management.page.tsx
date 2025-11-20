@@ -34,6 +34,8 @@ import { roleAccessService } from '../../services/role-access.service';
 import { UserDetails, PaginationOptions } from '../../types/auth.types';
 import { DeleteConfirmDialog } from './components/DeleteConfirmDialog';
 import { StorageStats } from './components/StorageStats';
+import { useIsMobile } from '../../utils/mobile';
+import { MobileAppShell } from '../../navigation/MobileAppShell';
 
 // Utility functions for formatting
 const formatFileSize = (bytes: number): string => {
@@ -62,6 +64,7 @@ const formatRelativeTime = (date: Date): string => {
 
 export const StorageManagementPage: React.FC = () => {
   const theme = useTheme();
+  const isMobile = useIsMobile();
   
   // State management
   const [currentPath, setCurrentPath] = useState<string>('');
@@ -442,6 +445,263 @@ export const StorageManagementPage: React.FC = () => {
     </Grid>
   );
 
+  // Mobile wrapper
+  if (isMobile) {
+    return (
+      <MobileAppShell pageTitle="Storage">
+        <Box sx={{ p: 2 }}>
+          {/* View Toggle for Admin */}
+          {hasAdminAccess && (
+            <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center' }}>
+              <ToggleButtonGroup
+                value={isAdminView}
+                exclusive
+                onChange={(e, newValue) => newValue !== null && handleViewToggle(newValue)}
+                color="primary"
+                size="small"
+                fullWidth
+                sx={{ maxWidth: 300 }}
+              >
+                <ToggleButton value={false}>My Files</ToggleButton>
+                <ToggleButton value={true}>All Users</ToggleButton>
+              </ToggleButtonGroup>
+            </Box>
+          )}
+
+          {/* Storage Stats */}
+          <Box sx={{ mb: 2 }}>
+            <StorageStats />
+          </Box>
+
+          {/* Breadcrumb Navigation (compact) */}
+          {!isAdminView && breadcrumbs.length > 0 && (
+            <Box sx={{ mb: 2 }}>
+              <Breadcrumbs
+                separator={<NavigateNextIcon fontSize="small" />}
+                maxItems={3}
+                sx={{ fontSize: '0.875rem' }}
+              >
+                <Link
+                  component="button"
+                  variant="body2"
+                  onClick={() => navigateToPath('')}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    textDecoration: 'none',
+                  }}
+                >
+                  <HomeIcon sx={{ mr: 0.5 }} fontSize="small" />
+                  Home
+                </Link>
+                {breadcrumbs.map((crumb) => (
+                  <Link
+                    key={crumb.path}
+                    component="button"
+                    variant="body2"
+                    onClick={() => navigateToPath(crumb.path)}
+                    sx={{ textDecoration: 'none' }}
+                  >
+                    {crumb.name}
+                  </Link>
+                ))}
+              </Breadcrumbs>
+            </Box>
+          )}
+
+          {/* Refresh Button */}
+          <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
+            <IconButton
+              onClick={loadCurrentPath}
+              disabled={loading}
+              color="primary"
+              sx={{ minWidth: 44, minHeight: 44 }}
+            >
+              <RefreshIcon />
+            </IconButton>
+          </Box>
+
+          {/* Error Alert */}
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+              {error}
+            </Alert>
+          )}
+
+          {/* Loading */}
+          {loading && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress />
+            </Box>
+          )}
+
+          {/* Content */}
+          {!loading && (
+            <Grid container spacing={2}>
+              {isAdminView ? (
+                // Admin View
+                allUserPdfs.map((pdf) => {
+                  const userDetails = userDetailsMap[pdf.metadata.userId] || {};
+                  return (
+                    <Grid item xs={12} sm={6} key={pdf.fileId}>
+                      <Card>
+                        <CardContent>
+                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                            <Avatar src={userDetails.photoURL} sx={{ mr: 1, width: 32, height: 32 }}>
+                              {userDetails.displayName?.[0] || <PersonIcon />}
+                            </Avatar>
+                            <Box>
+                              <Typography variant="subtitle2" noWrap>
+                                {userDetails.displayName || 'Unknown'}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary" noWrap>
+                                {userDetails.email}
+                              </Typography>
+                            </Box>
+                          </Box>
+                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                            <PdfIcon color="error" sx={{ mr: 1, fontSize: 20 }} />
+                            <Typography variant="body2" noWrap>
+                              {pdf.metadata.originalFileName}
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Chip label={formatFileSize(pdf.metadata.fileSize)} size="small" />
+                            <Chip label={formatRelativeTime(new Date(pdf.metadata.uploadedAt))} size="small" />
+                          </Box>
+                        </CardContent>
+                        <CardActions>
+                          <IconButton
+                            color="primary"
+                            onClick={() => window.open(pdf.downloadUrl, '_blank')}
+                            sx={{ minWidth: 44, minHeight: 44 }}
+                          >
+                            <DownloadIcon />
+                          </IconButton>
+                        </CardActions>
+                      </Card>
+                    </Grid>
+                  );
+                })
+              ) : (
+                // Personal View
+                <>
+                  {folders.map((folder) => (
+                    <Grid item xs={12} sm={6} key={folder.path}>
+                      <Card onClick={() => handleFolderOpen(folder)}>
+                        <CardContent sx={{ pb: 1 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                            <FolderIcon color="primary" sx={{ mr: 1 }} />
+                            <Typography variant="subtitle1" noWrap>
+                              {folder.name}
+                            </Typography>
+                          </Box>
+                          <Typography variant="body2" color="text.secondary">
+                            {folder.fileCount} file{folder.fileCount !== 1 ? 's' : ''}
+                          </Typography>
+                          <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                            <Chip label={formatFileSize(folder.totalSize)} size="small" />
+                            <Chip label={formatRelativeTime(folder.lastModified)} size="small" />
+                          </Box>
+                        </CardContent>
+                        <CardActions sx={{ pt: 0 }}>
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteClick('folder', folder);
+                            }}
+                            sx={{ minWidth: 44, minHeight: 44 }}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </CardActions>
+                      </Card>
+                    </Grid>
+                  ))}
+
+                  {files.map((file) => (
+                    <Grid item xs={12} sm={6} key={file.path}>
+                      <Card>
+                        <CardContent sx={{ pb: 1 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                            <PdfIcon color="error" sx={{ mr: 1 }} />
+                            <Typography variant="subtitle1" noWrap>
+                              {file.name}
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Chip label={formatFileSize(file.size)} size="small" />
+                            <Chip label={formatRelativeTime(file.lastModified)} size="small" />
+                          </Box>
+                        </CardContent>
+                        <CardActions sx={{ pt: 0 }}>
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            onClick={() => handleFileDownload(file)}
+                            sx={{ minWidth: 44, minHeight: 44 }}
+                          >
+                            <DownloadIcon />
+                          </IconButton>
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => handleDeleteClick('file', file)}
+                            sx={{ minWidth: 44, minHeight: 44 }}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </CardActions>
+                      </Card>
+                    </Grid>
+                  ))}
+                </>
+              )}
+            </Grid>
+          )}
+
+          {/* Delete Dialog */}
+          <DeleteConfirmDialog
+            open={deleteDialogOpen}
+            onClose={() => {
+              setDeleteDialogOpen(false);
+              setItemToDelete(null);
+            }}
+            onConfirm={handleDeleteConfirm}
+            itemType={itemToDelete?.type || 'file'}
+            itemName={itemToDelete?.item.name || ''}
+            folderStats={
+              itemToDelete?.type === 'folder'
+                ? {
+                    fileCount: (itemToDelete.item as FolderInfo).fileCount,
+                    totalSize: (itemToDelete.item as FolderInfo).totalSize
+                  }
+                : undefined
+            }
+          />
+
+          {/* Snackbar */}
+          <Snackbar
+            open={snackbarOpen}
+            autoHideDuration={6000}
+            onClose={() => setSnackbarOpen(false)}
+          >
+            <Alert
+              onClose={() => setSnackbarOpen(false)}
+              severity={snackbarSeverity}
+              sx={{ width: '100%' }}
+            >
+              {snackbarMessage}
+            </Alert>
+          </Snackbar>
+        </Box>
+      </MobileAppShell>
+    );
+  }
+
+  // Desktop version
   return (
     <Container maxWidth="lg" sx={{ py: 3 }}>
       {/* Header */}

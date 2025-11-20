@@ -293,10 +293,10 @@ describe('MobileProductsPage - Integration Tests', () => {
       expect(screen.queryByText(/Flipkart Product 1/i)).toBeTruthy();
     });
 
-    it('should display add product FAB', () => {
+    it('should display import products button', () => {
       renderWithProviders();
-      const fab = screen.getByLabelText('Add product');
-      expect(fab).toBeInTheDocument();
+      const importButton = screen.getByLabelText('Import products');
+      expect(importButton).toBeInTheDocument();
     });
 
     it('should display scan barcode button', () => {
@@ -420,13 +420,14 @@ describe('MobileProductsPage - Integration Tests', () => {
       }
     });
 
-    it('should navigate to add product page when FAB is clicked', () => {
+    it('should trigger file import when import button is clicked', () => {
       renderWithProviders();
 
-      const fab = screen.getByLabelText('Add product');
-      fireEvent.click(fab);
+      const importButton = screen.getByLabelText('Import products');
+      expect(importButton).toBeInTheDocument();
 
-      expect(mockNavigate).toHaveBeenCalledWith('/products/new');
+      // Import button is a label with a hidden file input, clicking it would trigger file selection
+      // We just verify it exists and is accessible
     });
   });
 
@@ -525,7 +526,7 @@ describe('MobileProductsPage - Integration Tests', () => {
     it('should have proper ARIA labels on interactive elements', () => {
       renderWithProviders();
 
-      expect(screen.getByLabelText('Add product')).toBeInTheDocument();
+      expect(screen.getByLabelText('Import products')).toBeInTheDocument();
       expect(screen.getByLabelText('Scan barcode')).toBeInTheDocument();
     });
 

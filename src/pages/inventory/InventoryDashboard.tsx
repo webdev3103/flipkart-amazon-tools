@@ -10,8 +10,6 @@ import {
   Chip,
   Tabs,
   Tab,
-  useTheme,
-  useMediaQuery,
   Stack,
 } from '@mui/material';
 import {
@@ -39,13 +37,14 @@ import ManualAdjustmentModal from './components/ManualAdjustmentModal';
 import InventoryImportModal from './components/InventoryImportModal';
 import MobileInventoryCards from './components/MobileInventoryCards';
 import { InventoryLevel, InventoryStatus } from '../../types/inventory';
+import { useIsMobile } from '../../utils/mobile';
+import { MobileAppShell } from '../../navigation/MobileAppShell';
 
 export const InventoryDashboard: React.FC = () => {
   const dispatch = useAppDispatch();
   const inventoryLevels = useAppSelector(selectInventoryLevels);
   // const categoryDeduction = useAppSelector(selectCategoryDeduction); // For future use
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = useIsMobile();
   
   const [manualAdjustmentOpen, setManualAdjustmentOpen] = useState(false);
   const [selectedInventory, setSelectedInventory] = useState<InventoryLevel | undefined>();
@@ -135,8 +134,8 @@ export const InventoryDashboard: React.FC = () => {
 
   const alertItems = [...lowStockItems, ...zeroStockItems, ...negativeStockItems];
 
-  return (
-    <Box sx={{ p: isMobile ? 1 : 3 }}>
+  const content = (
+    <Box sx={{ p: isMobile ? 2 : 3 }}>
       {/* Header */}
       <Box sx={{ 
         display: 'flex', 
@@ -398,6 +397,16 @@ export const InventoryDashboard: React.FC = () => {
       />
     </Box>
   );
+
+  if (isMobile) {
+    return (
+      <MobileAppShell pageTitle="Inventory">
+        {content}
+      </MobileAppShell>
+    );
+  }
+
+  return content;
 };
 
 export default InventoryDashboard;

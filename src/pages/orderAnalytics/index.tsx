@@ -23,9 +23,12 @@ import { useOrderFilters } from "./hooks/useOrderFilters";
 import HistoricalDataTab from "./components/HistoricalDataTab";
 import OverviewTab from "./components/OverviewTab";
 import OrderMetrics from "./components/OrderMetrics";
+import { useIsMobile } from "../../utils/mobile";
+import { MobileAppShell } from "../../navigation/MobileAppShell";
 
 const OrderAnalytics: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
+  const isMobile = useIsMobile();
   const {
     items: allOrders,
     loading: allOrdersLoading,
@@ -131,18 +134,27 @@ const OrderAnalytics: React.FC = () => {
   );
 
   if (error) {
-    return (
+    const errorContent = (
       <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
         <Typography color="error" variant="h6">
           Error: {error}
         </Typography>
       </Container>
     );
+
+    if (isMobile) {
+      return (
+        <MobileAppShell pageTitle="Order Analytics">
+          {errorContent}
+        </MobileAppShell>
+      );
+    }
+    return errorContent;
   }
 
-  return (
+  const content = (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+      <Container maxWidth="xl" sx={{ mt: isMobile ? 2 : 4, mb: isMobile ? 2 : 4 }}>
         <Box
           display="flex"
           justifyContent="space-between"
@@ -235,6 +247,16 @@ const OrderAnalytics: React.FC = () => {
       </Container>
     </LocalizationProvider>
   );
+
+  if (isMobile) {
+    return (
+      <MobileAppShell pageTitle="Order Analytics">
+        {content}
+      </MobileAppShell>
+    );
+  }
+
+  return content;
 };
 
 export default OrderAnalytics;

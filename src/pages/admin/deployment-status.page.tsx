@@ -24,6 +24,8 @@ import {
   Speed,
   Security
 } from '@mui/icons-material';
+import { useIsMobile } from '../../utils/mobile';
+import { MobileAppShell } from '../../navigation/MobileAppShell';
 
 interface DeploymentStatus {
   id: string;
@@ -43,6 +45,7 @@ interface DeploymentStatus {
 }
 
 const DeploymentStatusPage: React.FC = () => {
+  const isMobile = useIsMobile();
   const [loading, setLoading] = React.useState(true);
   const [deployments, setDeployments] = React.useState<DeploymentStatus[]>([]);
   const [currentDeployment, setCurrentDeployment] = React.useState<DeploymentStatus | null>(null);
@@ -140,8 +143,8 @@ const DeploymentStatusPage: React.FC = () => {
     );
   }
 
-  return (
-    <Box sx={{ p: 3 }}>
+  const content = (
+    <Box sx={{ p: isMobile ? 2 : 3 }}>
       <Typography variant="h4" gutterBottom>
         Deployment Status Dashboard
       </Typography>
@@ -313,6 +316,16 @@ const DeploymentStatusPage: React.FC = () => {
       </Grid>
     </Box>
   );
+
+  if (isMobile) {
+    return (
+      <MobileAppShell pageTitle="Deployment Status">
+        {content}
+      </MobileAppShell>
+    );
+  }
+
+  return content;
 };
 
 export default DeploymentStatusPage; 

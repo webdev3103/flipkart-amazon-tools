@@ -18,7 +18,7 @@ import {
   Tabs,
   Typography,
 } from "@mui/material";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, Suspense, lazy } from "react";
 import { useNavigate } from "react-router-dom";
 import { TransactionAnalysisService } from "../../services/transactionAnalysis.service";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
@@ -32,6 +32,14 @@ import OrderList from "./components/order-list.component";
 import ProductList from "./components/product-list.component";
 import SummaryTiles from "./components/summary-tiles.component";
 import ReportExtractionFactory from "./services/ReportExtractionFactory";
+import { useIsMobile } from "../../utils/mobile";
+
+// Lazy load mobile component
+const MobileTransactionAnalytics = lazy(() =>
+  import("./mobile/MobileTransactionAnalytics").then((module) => ({
+    default: module.MobileTransactionAnalytics,
+  }))
+);
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -49,6 +57,35 @@ function TabPanel(props: TabPanelProps) {
 }
 
 export const TransactionAnalytics: React.FC = () => {
+  const isMobile = useIsMobile();
+
+  // If mobile, render mobile version
+  if (isMobile) {
+    return (
+      <Suspense
+        fallback={
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              minHeight: "100vh",
+            }}
+          >
+            <CircularProgress />
+          </Box>
+        }
+      >
+        <MobileTransactionAnalytics />
+      </Suspense>
+    );
+  }
+
+  // Desktop version follows below
+  return <DesktopTransactionAnalytics />;
+};
+
+const DesktopTransactionAnalytics: React.FC = () => {
   const dispatch = useAppDispatch();
   const {
     items: transactions,

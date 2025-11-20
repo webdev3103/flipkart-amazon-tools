@@ -8,6 +8,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { Timestamp } from 'firebase/firestore';
 import { InventoryMovementsTable } from '../InventoryMovementsTable';
 import inventoryReducer from '../../../../store/slices/inventorySlice';
+import categoryGroupsReducer from '../../../../store/slices/categoryGroupsSlice';
 import { InventoryMovement } from '../../../../types/inventory';
 
 const mockMovement: InventoryMovement = {
@@ -23,9 +24,10 @@ const mockMovement: InventoryMovement = {
   createdAt: Timestamp.fromDate(new Date('2023-01-01T10:00:00Z')),
 };
 
-const mockStore = configureStore({ 
+const mockStore = configureStore({
   reducer: {
     inventory: inventoryReducer,
+    categoryGroups: categoryGroupsReducer,
   },
   preloadedState: {
     inventory: {
@@ -89,6 +91,13 @@ const mockStore = configureStore({
         deductionConfigurationSummary: [],
         lastProcessedOrderItems: [],
       },
+    },
+    categoryGroups: {
+      groups: [],
+      loading: false,
+      error: null,
+      selectedGroupId: null,
+      lastUpdated: null,
     },
   },
   middleware: (getDefaultMiddleware) =>
@@ -156,9 +165,10 @@ describe('InventoryMovementsTable', () => {
   }) as any;
 
   it('shows loading state', () => {
-    const loadingStore = configureStore({ 
+    const loadingStore = configureStore({
       reducer: {
         inventory: inventoryReducer,
+        categoryGroups: categoryGroupsReducer,
       },
       preloadedState: {
         inventory: {
@@ -168,6 +178,7 @@ describe('InventoryMovementsTable', () => {
             inventoryMovements: true,
           },
         },
+        categoryGroups: mockStore.getState().categoryGroups,
       },
     }) as any;
 
@@ -185,9 +196,10 @@ describe('InventoryMovementsTable', () => {
   }) as any;
 
   it('shows empty state when no movements', async () => {
-    const emptyStore = configureStore({ 
+    const emptyStore = configureStore({
       reducer: {
         inventory: inventoryReducer,
+        categoryGroups: categoryGroupsReducer,
       },
       preloadedState: {
         inventory: {
@@ -199,6 +211,7 @@ describe('InventoryMovementsTable', () => {
             inventoryMovements: false, // Explicitly set loading to false
           },
         },
+        categoryGroups: mockStore.getState().categoryGroups,
       },
       middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({

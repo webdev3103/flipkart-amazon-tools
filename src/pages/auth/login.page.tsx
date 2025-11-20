@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense, lazy } from 'react';
 import {
   Box,
   TextField,
@@ -20,14 +20,51 @@ import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { login, resetPassword } from '../../store/slices/authSlice';
+import { useIsMobile } from '../../utils/mobile';
+
+// Lazy load mobile component
+const MobileLoginPage = lazy(() =>
+  import('./mobile/MobileLoginPage').then((module) => ({
+    default: module.MobileLoginPage,
+  }))
+);
 
 export const LoginPage: React.FC = () => {
+  const isMobile = useIsMobile();
+
+  // If mobile, render mobile version
+  if (isMobile) {
+    return (
+      <Suspense
+        fallback={
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              minHeight: '100vh',
+            }}
+          >
+            <CircularProgress />
+          </Box>
+        }
+      >
+        <MobileLoginPage />
+      </Suspense>
+    );
+  }
+
+  // Desktop version follows below
+  return <DesktopLoginPage />;
+};
+
+const DesktopLoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [isResetMode, setIsResetMode] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  
+
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { loading, error } = useAppSelector(state => state.auth);
