@@ -7,9 +7,11 @@ import {
   Badge
 } from '@mui/material';
 import {
+  Home as HomeIcon,
   ShoppingCart as OrdersIcon,
   Inventory as ProductsIcon,
-  Category as CategoriesIcon
+  Category as CategoriesIcon,
+  Inventory2 as InventoryIcon
 } from '@mui/icons-material';
 import { MobileTab } from '../types/mobile';
 import { getSafeAreaInsets } from '../utils/mobile';
@@ -17,7 +19,7 @@ import { getBasePath } from '../utils/routing';
 
 /**
  * Mobile bottom navigation component for primary app navigation
- * Displays bottom tabs for Active Orders, Products, and Categories
+ * Displays bottom tabs for Home, Orders, Products, Categories, and Inventory
  * Uses Material-UI BottomNavigation with proper touch targets and safe areas
  *
  * @example
@@ -30,6 +32,13 @@ export const MobileBottomNav: React.FC = () => {
 
   // Define navigation tabs for mobile app with dynamic base path
   const tabs: MobileTab[] = [
+    {
+      id: 'home',
+      label: 'Home',
+      icon: <HomeIcon />,
+      route: basePath === '' ? '/' : basePath,
+      disabled: false
+    },
     {
       id: 'orders',
       label: 'Orders',
@@ -49,6 +58,13 @@ export const MobileBottomNav: React.FC = () => {
       label: 'Categories',
       icon: <CategoriesIcon />,
       route: `${basePath}/categories`,
+      disabled: false
+    },
+    {
+      id: 'inventory',
+      label: 'Inventory',
+      icon: <InventoryIcon />,
+      route: `${basePath}/inventory`,
       disabled: false
     }
   ];
