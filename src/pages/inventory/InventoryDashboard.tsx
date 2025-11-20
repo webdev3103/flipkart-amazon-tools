@@ -29,6 +29,7 @@ import {
   selectInventoryLevels,
   exportInventoryData,
   fetchCategoriesWithDeduction,
+  setMovementFilters,
   // selectCategoryDeduction, // For future use
 } from '../../store/slices/inventorySlice';
 import { InventoryLevelsList } from './components/InventoryLevelsList';
@@ -111,6 +112,13 @@ export const InventoryDashboard: React.FC = () => {
     // Refresh inventory data after successful import
     dispatch(fetchInventoryLevels());
     setImportModalOpen(false);
+  };
+
+  const handleInventoryRowClick = (inventory: InventoryLevel) => {
+    // Switch to Activity History tab
+    setCurrentTab(1);
+    // Filter movements by the selected category group
+    dispatch(setMovementFilters({ categoryGroupId: inventory.categoryGroupId }));
   };
 
   // Calculate inventory statistics
@@ -360,6 +368,7 @@ export const InventoryDashboard: React.FC = () => {
             ) : (
               <InventoryLevelsList
                 onManualAdjustment={handleOpenManualAdjustment}
+                onRowClick={handleInventoryRowClick}
               />
             )}
           </Box>

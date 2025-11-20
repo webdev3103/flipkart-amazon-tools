@@ -27,10 +27,12 @@ import {
 
 interface Props {
   onManualAdjustment?: (inventoryLevel: InventoryLevel) => void;
+  onRowClick?: (inventoryLevel: InventoryLevel) => void;
 }
 
 export const InventoryLevelsList: React.FC<Props> = ({
   onManualAdjustment,
+  onRowClick,
 }) => {
   const dispatch = useAppDispatch();
   const inventoryLevels = useAppSelector(selectInventoryLevels);
@@ -274,6 +276,8 @@ export const InventoryLevelsList: React.FC<Props> = ({
         rowsPerPageOptions={[10, 25, 50, 100]}
         defaultRowsPerPage={25}
         getRowId={(row) => row.categoryGroupId}
+        onRowClick={onRowClick}
+        rowClickable={!!onRowClick}
       />
 
       {loading.inventoryLevels && (
