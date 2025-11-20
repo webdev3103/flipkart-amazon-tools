@@ -176,8 +176,8 @@ export const InlineHistoricalActivity: React.FC<Props> = ({
         </Typography>
         <Typography variant="caption" color="text.secondary">
           {!groupByDate && formatTimestamp(movement.createdAt)}
-          {groupByDate && new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit' }).format(
-            movement.createdAt && typeof movement.createdAt === 'object' && 'toDate' in movement.createdAt
+          {groupByDate && movement.createdAt && new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit' }).format(
+            typeof movement.createdAt === 'object' && 'toDate' in movement.createdAt
               ? (movement.createdAt as { toDate: () => Date }).toDate()
               : new Date(movement.createdAt as string | number | Date)
           )}

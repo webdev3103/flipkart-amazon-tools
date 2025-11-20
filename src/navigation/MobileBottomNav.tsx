@@ -96,9 +96,30 @@ export const MobileBottomNav: React.FC = () => {
 
   // Update active tab when route changes
   React.useEffect(() => {
-    setValue(getActiveTab());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname]);
+    const currentPath = location.pathname;
+
+    // Exact match first (for home route)
+    const exactIndex = tabs.findIndex(tab => currentPath === tab.route || currentPath === tab.route.replace(/\/$/, ''));
+    if (exactIndex >= 0) {
+      setValue(exactIndex);
+      return;
+    }
+
+    // Then check if currentPath starts with any tab route
+    // Sort by route length (longest first) to match most specific routes first
+    const sortedTabs = [...tabs].sort((a, b) => b.route.length - a.route.length);
+    for (let i = 0; i < sortedTabs.length; i++) {
+      const tab = sortedTabs[i];
+      if (currentPath.startsWith(tab.route) || currentPath.startsWith(tab.route.replace(/\/$/, ''))) {
+        const tabIndex = tabs.findIndex(t => t.id === tab.id);
+        setValue(tabIndex);
+        return;
+      }
+    }
+
+    // Default to home
+    setValue(0);
+  }, [location.pathname, tabs]);
 
   const handleChange = (_event: React.SyntheticEvent, newValue: number) => {
     setValue(newValue);

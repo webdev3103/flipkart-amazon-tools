@@ -9,7 +9,7 @@ import {
   Alert,
   AlertTitle,
 } from "@mui/material";
-import React, { useEffect, Suspense, lazy } from "react";
+import React, { useEffect } from "react";
 import WarningIcon from "@mui/icons-material/Warning";
 import CategoryIcon from "@mui/icons-material/Category";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";

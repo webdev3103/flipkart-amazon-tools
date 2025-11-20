@@ -69,7 +69,6 @@ const MobileHomePage = lazy(() =>
 );
 
 export const HomePage: React.FC = () => {
-  const theme = useTheme();
   const isMobile = useIsMobile();
 
   // If mobile, render mobile version
