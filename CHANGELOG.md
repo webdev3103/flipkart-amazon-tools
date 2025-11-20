@@ -1,5 +1,11 @@
 # Changelog
 
+## 10.2.0
+
+### Minor Changes
+
+- [#85](https://github.com/webdev3103/flipkart-amazon-tools/pull/85) [`1fa2ab6`](https://github.com/webdev3103/flipkart-amazon-tools/commit/1fa2ab6abfc666485fcaabc1a58708c8acc8f5a6) Thanks [@webdev3103](https://github.com/webdev3103)! - Added mobile views for remaining pages
+
 ## 10.1.0
 
 ### Minor Changes
