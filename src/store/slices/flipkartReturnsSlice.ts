@@ -48,60 +48,101 @@ export const uploadReturnsFile = createAsyncThunk(
   "flipkartReturns/uploadFile",
   async (file: File, { rejectWithValue, getState }) => {
     try {
-      console.log('[uploadReturnsFile] Starting upload process for:', file.name);
-
       // Parse Excel file
       const factory = new FlipkartReturnsFactory(file);
       const returns = await factory.process();
-      console.log('[uploadReturnsFile] Parsed returns:', returns.length);
 
       if (!returns || returns.length === 0) {
         throw new Error("No valid returns found in file");
       }
 
       // Check for duplicates using batch method (much faster than individual checks)
-      console.log('[uploadReturnsFile] Checking for duplicates...');
       const returnIds = returns.map(r => r.returnId);
       const duplicateSet = await flipkartReturnsService.batchCheckExistingReturns(returnIds);
-      const duplicates = Array.from(duplicateSet);
-      console.log('[uploadReturnsFile] Found duplicates:', duplicates.length);
+      const duplicateIds = Array.from(duplicateSet);
 
-      // Save non-duplicate returns
-      const newReturns = returns.filter((r) => !duplicates.includes(r.returnId));
-      console.log('[uploadReturnsFile] Saving new returns:', newReturns.length);
+      // Separate new returns and duplicate returns
+      const newReturns = returns.filter((r) => !duplicateIds.includes(r.returnId));
+      const duplicateReturns = returns.filter((r) => duplicateIds.includes(r.returnId));
 
-      if (newReturns.length > 0) {
-        await flipkartReturnsService.saveReturns(newReturns);
-        console.log('[uploadReturnsFile] Returns saved successfully');
+      // Fetch existing returns to merge with updates
+      let updatedReturns: FlipkartReturn[] = [];
+      const skippedDeliveredReturns: FlipkartReturn[] = [];
+
+      if (duplicateReturns.length > 0) {
+        const existingReturnsMap = await flipkartReturnsService.batchFetchExistingReturns(duplicateIds);
+
+        // Filter out returns that are already delivered - they should not be updated
+        const returnsToUpdate: FlipkartReturn[] = [];
+
+        duplicateReturns.forEach((newReturn) => {
+          const existingReturn = existingReturnsMap.get(newReturn.returnId);
+
+          if (!existingReturn) {
+            returnsToUpdate.push(newReturn); // Shouldn't happen, but handle gracefully
+            return;
+          }
+
+          // Skip update if return is already marked as delivered
+          if (existingReturn.dates.returnDeliveredDate) {
+            skippedDeliveredReturns.push(existingReturn);
+            return;
+          }
+
+          // Merge: Use new data for all fields, but preserve existing pricing if new data doesn't have it
+          returnsToUpdate.push({
+            ...newReturn,
+            pricing: newReturn.pricing || existingReturn.pricing,
+            categoryId: newReturn.categoryId || existingReturn.categoryId,
+            metadata: {
+              ...newReturn.metadata,
+              createdAt: existingReturn.metadata.createdAt, // Preserve original creation time
+            },
+          });
+        });
+
+        // Enrich and update only non-delivered returns
+        if (returnsToUpdate.length > 0) {
+          updatedReturns = await flipkartReturnsService.enrichReturnsWithPricing(returnsToUpdate);
+          await flipkartReturnsService.updateReturns(updatedReturns);
+        }
       }
 
-      // Restore inventory for resaleable returns
-      let inventoryRestoration: InventoryRestorationResult | null = null;
+      // Enrich and save new returns with product pricing data
+      let enrichedNewReturns: FlipkartReturn[] = [];
       if (newReturns.length > 0) {
+        enrichedNewReturns = await flipkartReturnsService.enrichReturnsWithPricing(newReturns);
+        await flipkartReturnsService.saveReturns(enrichedNewReturns);
+      }
+
+      // Restore inventory for delivered returns
+      // Logic: When a return is delivered (returnDeliveredDate set), restore to inventory
+      // This applies to both new returns AND updated returns with newly added delivery dates
+      let inventoryRestoration: InventoryRestorationResult | null = null;
+      const allReturnsToProcess = [...enrichedNewReturns, ...updatedReturns];
+
+      if (allReturnsToProcess.length > 0) {
         const state = getState() as { auth: { user: { uid: string } | null } };
         const userId = state.auth?.user?.uid || 'system';
-        console.log('[uploadReturnsFile] Restoring inventory for user:', userId);
 
         const integrationService = new ReturnsInventoryIntegrationService();
-        inventoryRestoration = await integrationService.restoreInventoryFromReturns(
-          newReturns,
+
+        // Restore inventory for delivered returns (primary trigger)
+        inventoryRestoration = await integrationService.restoreInventoryFromDeliveredReturns(
+          allReturnsToProcess,
           userId
         );
-        console.log('[uploadReturnsFile] Inventory restoration result:', inventoryRestoration);
       }
 
-      console.log('[uploadReturnsFile] Upload process completed successfully');
       return {
-        returns: newReturns,
-        duplicates,
+        newReturns: enrichedNewReturns,
+        updatedReturns,
+        skippedDeliveredReturns, // Returns already marked as delivered (not updated)
         totalParsed: returns.length,
         inventoryRestoration,
       };
     } catch (error) {
-      console.error('[uploadReturnsFile] Error during upload:', error);
       if (error instanceof Error) {
-        console.error('[uploadReturnsFile] Error message:', error.message);
-        console.error('[uploadReturnsFile] Error stack:', error.stack);
         return rejectWithValue(error.message);
       }
       return rejectWithValue("Failed to upload returns file");
@@ -310,22 +351,49 @@ const flipkartReturnsSlice = createSlice({
     builder.addCase(uploadReturnsFile.fulfilled, (state, action) => {
       state.uploading = false;
       state.uploadProgress = 100;
-      state.returns = [...state.returns, ...action.payload.returns];
+
+      const { newReturns, updatedReturns, skippedDeliveredReturns = [], inventoryRestoration } = action.payload;
+
+      // Add new returns to the state
+      state.returns = [...state.returns, ...newReturns];
+
+      // Update existing returns in the state
+      if (updatedReturns.length > 0) {
+        updatedReturns.forEach((updatedReturn) => {
+          const index = state.returns.findIndex((r) => r.returnId === updatedReturn.returnId);
+          if (index !== -1) {
+            state.returns[index] = updatedReturn;
+          }
+        });
+      }
+
       state.filteredReturns = applyFilters(state.returns, state.filters);
-      state.inventoryRestoration = action.payload.inventoryRestoration;
+      state.inventoryRestoration = inventoryRestoration;
 
-      const { duplicates, inventoryRestoration } = action.payload;
-      const savedCount = action.payload.returns.length;
+      // Build success message
+      const newCount = newReturns.length;
+      const updatedCount = updatedReturns.length;
+      const skippedCount = skippedDeliveredReturns?.length || 0;
+      const totalCount = newCount + updatedCount;
 
-      // Build success message with inventory restoration info
-      let message = `Successfully uploaded ${savedCount} returns.`;
+      let message = '';
 
-      if (duplicates.length > 0) {
-        message = `Uploaded ${savedCount} returns. ${duplicates.length} duplicates skipped.`;
+      if (newCount > 0 && updatedCount > 0) {
+        message = `Successfully processed ${totalCount} returns: ${newCount} new, ${updatedCount} updated.`;
+      } else if (newCount > 0) {
+        message = `Successfully uploaded ${newCount} new returns.`;
+      } else if (updatedCount > 0) {
+        message = `Successfully updated ${updatedCount} existing returns.`;
+      } else {
+        message = 'No returns to process.';
+      }
+
+      if (skippedCount > 0) {
+        message += ` ${skippedCount} delivered returns skipped (already completed).`;
       }
 
       if (inventoryRestoration && inventoryRestoration.restored.length > 0) {
-        message += ` ${inventoryRestoration.restored.length} resaleable items restored to inventory.`;
+        message += ` ${inventoryRestoration.restored.length} items restored to inventory.`;
       }
 
       if (inventoryRestoration && inventoryRestoration.errors.length > 0) {
@@ -483,8 +551,12 @@ function applyFilters(returns: FlipkartReturn[], filters: ReturnsFilters): Flipk
 
   return returns.filter((returnItem) => {
     // Date range filter
+    // Priority: returnDeliveredDate (completion) > returnApprovedDate > returnInitiatedDate
     if (filters.dateRange) {
-      const returnDate = returnItem.dates.returnInitiatedDate;
+      const returnDate = returnItem.dates.returnDeliveredDate
+        || returnItem.dates.returnApprovedDate
+        || returnItem.dates.returnInitiatedDate;
+
       if (
         returnDate < filters.dateRange.start ||
         returnDate > filters.dateRange.end

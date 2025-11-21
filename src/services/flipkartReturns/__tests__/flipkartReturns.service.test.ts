@@ -455,6 +455,175 @@ describe("FlipkartReturnsService", () => {
     });
   });
 
+  describe("batchFetchExistingReturns", () => {
+    it("should return empty map when no return IDs provided", async () => {
+      const result = await service.batchFetchExistingReturns([]);
+      expect(result.size).toBe(0);
+    });
+
+    it("should fetch existing returns by IDs", async () => {
+      const existingReturns = [
+        {
+          id: "RET001",
+          data: () => ({
+            ...mockReturn,
+            returnId: "RET001",
+            dates: {
+              orderDate: Timestamp.fromDate(mockReturn.dates.orderDate),
+              returnInitiatedDate: Timestamp.fromDate(mockReturn.dates.returnInitiatedDate),
+            },
+          }),
+        },
+        {
+          id: "RET002",
+          data: () => ({
+            ...mockReturn,
+            returnId: "RET002",
+            dates: {
+              orderDate: Timestamp.fromDate(mockReturn.dates.orderDate),
+              returnInitiatedDate: Timestamp.fromDate(mockReturn.dates.returnInitiatedDate),
+            },
+          }),
+        },
+        {
+          id: "RET003",
+          data: () => ({
+            ...mockReturn,
+            returnId: "RET003",
+            dates: {
+              orderDate: Timestamp.fromDate(mockReturn.dates.orderDate),
+              returnInitiatedDate: Timestamp.fromDate(mockReturn.dates.returnInitiatedDate),
+            },
+          }),
+        },
+      ];
+
+      const mockSnapshot = {
+        forEach: (callback: (doc: any) => void) => {
+          existingReturns.forEach(callback);
+        },
+      };
+
+      (collection as jest.Mock).mockReturnValue({ id: "flipkartReturns" });
+      (getDocs as jest.Mock).mockResolvedValue(mockSnapshot);
+
+      const returnIds = ["RET001", "RET003", "RET005"]; // RET002 and RET005 not requested
+      const result = await service.batchFetchExistingReturns(returnIds);
+
+      expect(result.size).toBe(2); // Only RET001 and RET003
+      expect(result.has("RET001")).toBe(true);
+      expect(result.has("RET002")).toBe(false); // Not in requested IDs
+      expect(result.has("RET003")).toBe(true);
+      expect(result.has("RET005")).toBe(false); // Doesn't exist in DB
+
+      const return1 = result.get("RET001");
+      expect(return1?.returnId).toBe("RET001");
+    });
+
+    it("should handle Firestore errors gracefully", async () => {
+      const firestoreError = new Error("Firestore connection error");
+      (getDocs as jest.Mock).mockRejectedValue(firestoreError);
+
+      const returnIds = ["RET001", "RET002"];
+      const result = await service.batchFetchExistingReturns(returnIds);
+
+      // Should return empty map on error
+      expect(result.size).toBe(0);
+    });
+  });
+
+  describe("updateReturns", () => {
+    it("should update multiple returns using batch write with merge", async () => {
+      const mockReturns = [
+        { ...mockReturn, returnId: "RET001", returnStatus: FlipkartReturnStatus.REFUNDED },
+        { ...mockReturn, returnId: "RET002", returnStatus: FlipkartReturnStatus.APPROVED },
+      ];
+
+      const mockBatch = {
+        set: jest.fn(),
+        commit: jest.fn().mockResolvedValue(undefined),
+      };
+
+      (writeBatch as jest.Mock).mockReturnValue(mockBatch);
+      (doc as jest.Mock).mockReturnValue({ id: "mock-doc" });
+
+      await service.updateReturns(mockReturns);
+
+      expect(writeBatch).toHaveBeenCalled();
+      expect(mockBatch.set).toHaveBeenCalledTimes(2);
+
+      // Verify merge option is passed
+      expect(mockBatch.set).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        { merge: true }
+      );
+
+      expect(mockBatch.commit).toHaveBeenCalled();
+    });
+
+    it("should throw error when no returns provided", async () => {
+      await expect(service.updateReturns([])).rejects.toThrow("No returns to update");
+    });
+
+    it("should handle batches of more than 500 returns", async () => {
+      const mockReturns = Array.from({ length: 600 }, (_, i) => ({
+        ...mockReturn,
+        returnId: `RET${i + 1}`,
+      }));
+
+      const mockBatch = {
+        set: jest.fn(),
+        commit: jest.fn().mockResolvedValue(undefined),
+      };
+
+      (writeBatch as jest.Mock).mockReturnValue(mockBatch);
+      (doc as jest.Mock).mockReturnValue({ id: "mock-doc" });
+
+      await service.updateReturns(mockReturns);
+
+      // Should create 2 batches (500 + 100)
+      expect(writeBatch).toHaveBeenCalledTimes(2);
+      expect(mockBatch.commit).toHaveBeenCalledTimes(2);
+      expect(mockBatch.set).toHaveBeenCalledTimes(600);
+    });
+
+    it("should preserve data integrity during update", async () => {
+      const updatedReturn = {
+        ...mockReturn,
+        returnStatus: FlipkartReturnStatus.REFUNDED,
+        dates: {
+          ...mockReturn.dates,
+          returnDeliveredDate: new Date("2024-01-25"),
+          refundProcessedDate: new Date("2024-01-26"),
+        },
+        financials: {
+          ...mockReturn.financials,
+          refundAmount: 2000,
+        },
+      };
+
+      const mockBatch = {
+        set: jest.fn(),
+        commit: jest.fn().mockResolvedValue(undefined),
+      };
+
+      (writeBatch as jest.Mock).mockReturnValue(mockBatch);
+      (doc as jest.Mock).mockReturnValue({ id: mockReturn.returnId });
+
+      await service.updateReturns([updatedReturn]);
+
+      expect(mockBatch.set).toHaveBeenCalledWith(
+        { id: mockReturn.returnId },
+        expect.objectContaining({
+          returnId: mockReturn.returnId,
+          returnStatus: FlipkartReturnStatus.REFUNDED,
+        }),
+        { merge: true }
+      );
+    });
+  });
+
   describe("getReturnsWithFilters", () => {
     beforeEach(() => {
       // Mock getAllReturns to return test data
@@ -535,4 +704,34 @@ describe("FlipkartReturnsService", () => {
       expect(result[0].resaleable).toBe(true);
     });
   });
+
+  describe("enrichReturnsWithPricing", () => {
+    it("should handle empty returns array", async () => {
+      const result = await service.enrichReturnsWithPricing([]);
+      expect(result).toEqual([]);
+      expect(getDocs).not.toHaveBeenCalled();
+    });
+
+    it("should call Firestore queries for products and categories", async () => {
+      const testReturns = [{ ...mockReturn, sku: "SKU123" }];
+
+      const mockProductsSnapshot = {
+        forEach: jest.fn(),
+      };
+
+      const mockCategoriesSnapshot = {
+        forEach: jest.fn(),
+      };
+
+      (getDocs as jest.Mock)
+        .mockResolvedValueOnce(mockProductsSnapshot) // Products query
+        .mockResolvedValueOnce(mockCategoriesSnapshot); // Categories query
+
+      await service.enrichReturnsWithPricing(testReturns);
+
+      // Should make product and category queries
+      expect(getDocs).toHaveBeenCalled();
+    });
+  });
+
 });

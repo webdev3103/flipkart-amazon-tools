@@ -173,9 +173,10 @@ describe("flipkartReturnsSlice", () => {
         const action = {
           type: uploadReturnsFile.fulfilled.type,
           payload: {
-            returns: [mockReturn],
-            duplicates: [],
+            newReturns: [mockReturn],
+            updatedReturns: [],
             totalParsed: 1,
+            inventoryRestoration: null,
           },
         };
 
@@ -184,25 +185,42 @@ describe("flipkartReturnsSlice", () => {
         expect(state.uploading).toBe(false);
         expect(state.uploadProgress).toBe(100);
         expect(state.returns).toHaveLength(1);
-        expect(state.successMessage).toBe("Successfully uploaded 1 returns.");
+        expect(state.successMessage).toBe("Successfully uploaded 1 new returns.");
       });
 
       it("should handle uploadReturnsFile.fulfilled with duplicates", () => {
+        const existingReturn = {
+          ...mockReturn,
+          returnId: "RET002",
+          returnStatus: FlipkartReturnStatus.INITIATED,
+        };
+
+        const stateWithExisting = {
+          ...initialState,
+          returns: [existingReturn],
+        };
+
+        const updatedReturn = {
+          ...existingReturn,
+          returnStatus: FlipkartReturnStatus.REFUNDED,
+        };
+
         const action = {
           type: uploadReturnsFile.fulfilled.type,
           payload: {
-            returns: [mockReturn],
-            duplicates: ["RET002"],
+            newReturns: [mockReturn],
+            updatedReturns: [updatedReturn],
             totalParsed: 2,
+            inventoryRestoration: null,
           },
         };
 
-        const state = flipkartReturnsReducer(initialState, action);
+        const state = flipkartReturnsReducer(stateWithExisting, action);
 
         expect(state.uploading).toBe(false);
         expect(state.uploadProgress).toBe(100);
-        expect(state.returns).toHaveLength(1);
-        expect(state.successMessage).toBe("Uploaded 1 returns. 1 duplicates skipped.");
+        expect(state.returns).toHaveLength(2);
+        expect(state.successMessage).toBe("Successfully processed 2 returns: 1 new, 1 updated.");
       });
 
       it("should handle uploadReturnsFile.rejected", () => {

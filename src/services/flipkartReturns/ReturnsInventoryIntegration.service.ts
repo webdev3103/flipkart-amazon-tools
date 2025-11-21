@@ -19,6 +19,7 @@
 
 import { FlipkartReturn } from '../../types/flipkartReturns.type';
 import { ProductService } from '../product.service';
+import { CategoryService } from '../category.service';
 import { InventoryService } from '../inventory.service';
 
 export interface InventoryRestorationResult {
@@ -44,10 +45,12 @@ export interface InventoryRestorationResult {
 
 export class ReturnsInventoryIntegrationService {
   private readonly productService: ProductService;
+  private readonly categoryService: CategoryService;
   private readonly inventoryService: InventoryService;
 
   constructor() {
     this.productService = new ProductService();
+    this.categoryService = new CategoryService();
     this.inventoryService = new InventoryService();
   }
 
@@ -81,10 +84,15 @@ export class ReturnsInventoryIntegrationService {
       return result;
     }
 
-    // Fetch all products once for efficient mapping
+    // Fetch all products and categories once for efficient mapping
     const products = await this.productService.getProducts({});
     const productsBySku = new Map(
       products.map(p => [p.sku, p])
+    );
+
+    const categories = await this.categoryService.getCategories();
+    const categoriesById = new Map(
+      categories.map(c => [c.id, c])
     );
 
     // Process each resaleable return
@@ -102,7 +110,15 @@ export class ReturnsInventoryIntegrationService {
           continue;
         }
 
-        if (!product.categoryGroupId) {
+        // Resolve categoryGroupId: Use product's direct mapping or fetch from category
+        let categoryGroupId = product.categoryGroupId;
+
+        if (!categoryGroupId && product.categoryId) {
+          const category = categoriesById.get(product.categoryId);
+          categoryGroupId = category?.categoryGroupId;
+        }
+
+        if (!categoryGroupId) {
           result.skipped.push({
             returnId: returnItem.returnId,
             sku: returnItem.sku,
@@ -113,7 +129,7 @@ export class ReturnsInventoryIntegrationService {
 
         // Use adjustInventoryManually for additions with proper audit trail
         const adjustmentResult = await this.inventoryService.adjustInventoryManually({
-          categoryGroupId: product.categoryGroupId,
+          categoryGroupId: categoryGroupId,
           adjustmentType: 'increase',
           quantity: returnItem.quantity,
           reason: 'stock_returned', // Predefined reason code
@@ -124,7 +140,7 @@ export class ReturnsInventoryIntegrationService {
         result.restored.push({
           returnId: returnItem.returnId,
           sku: returnItem.sku,
-          categoryGroupId: product.categoryGroupId,
+          categoryGroupId: categoryGroupId,
           quantity: returnItem.quantity,
           movementId: adjustmentResult.movementId
         });
@@ -156,6 +172,117 @@ export class ReturnsInventoryIntegrationService {
     userId: string
   ): Promise<InventoryRestorationResult> {
     return this.restoreInventoryFromReturns([returnItem], userId);
+  }
+
+  /**
+   * Restore inventory for delivered returns (regardless of resaleable status)
+   *
+   * Business Logic:
+   * - Triggers when return has returnDeliveredDate set (return completed/received at warehouse)
+   * - Restores inventory unconditionally when return is physically back
+   * - Different from resaleable-based restoration which is QC-status dependent
+   * - Creates audit trail with "return_delivered" reason code
+   *
+   * Use Case: When Flipkart returns are physically delivered back to seller's warehouse,
+   * the quantity should be restored to inventory immediately, separate from QC assessment.
+   *
+   * Note: This processes ALL returns with returnDeliveredDate, including both new and updated returns.
+   * The inventory service creates an audit trail to track all restoration operations.
+   *
+   * @param returns - Array of Flipkart returns to process (new or updated)
+   * @param userId - User ID for audit trail (who triggered the restoration)
+   * @returns InventoryRestorationResult with detailed success/skip/error breakdown
+   */
+  async restoreInventoryFromDeliveredReturns(
+    returns: FlipkartReturn[],
+    userId: string
+  ): Promise<InventoryRestorationResult> {
+    const result: InventoryRestorationResult = {
+      success: true,
+      restored: [],
+      skipped: [],
+      errors: []
+    };
+
+    // Filter for returns with returnDeliveredDate set (physically received at warehouse)
+    const deliveredReturns = returns.filter(r => r.dates.returnDeliveredDate);
+
+    if (deliveredReturns.length === 0) {
+      return result;
+    }
+
+    // Fetch all products and categories once for efficient mapping
+    const products = await this.productService.getProducts({});
+    const productsBySku = new Map(
+      products.map(p => [p.sku, p])
+    );
+
+    const categories = await this.categoryService.getCategories();
+    const categoriesById = new Map(
+      categories.map(c => [c.id, c])
+    );
+
+    // Process each delivered return
+    for (const returnItem of deliveredReturns) {
+      try {
+        // Validate SKU mapping
+        const product = productsBySku.get(returnItem.sku);
+
+        if (!product) {
+          result.skipped.push({
+            returnId: returnItem.returnId,
+            sku: returnItem.sku,
+            reason: 'Product not found in catalog'
+          });
+          continue;
+        }
+
+        // Resolve categoryGroupId: Use product's direct mapping or fetch from category
+        let categoryGroupId = product.categoryGroupId;
+
+        if (!categoryGroupId && product.categoryId) {
+          const category = categoriesById.get(product.categoryId);
+          categoryGroupId = category?.categoryGroupId;
+        }
+
+        if (!categoryGroupId) {
+          result.skipped.push({
+            returnId: returnItem.returnId,
+            sku: returnItem.sku,
+            reason: 'Product has no category group mapping'
+          });
+          continue;
+        }
+
+        // Use adjustInventoryManually for additions with proper audit trail
+        const adjustmentResult = await this.inventoryService.adjustInventoryManually({
+          categoryGroupId: categoryGroupId,
+          adjustmentType: 'increase',
+          quantity: returnItem.quantity,
+          reason: 'stock_returned', // Predefined reason code
+          notes: `Automatic restoration from delivered return ${returnItem.returnId} - Delivered: ${returnItem.dates.returnDeliveredDate?.toISOString()}`,
+          adjustedBy: userId
+        });
+
+        result.restored.push({
+          returnId: returnItem.returnId,
+          sku: returnItem.sku,
+          categoryGroupId: categoryGroupId,
+          quantity: returnItem.quantity,
+          movementId: adjustmentResult.movementId
+        });
+
+      } catch (error) {
+        result.success = false;
+        result.errors.push({
+          returnId: returnItem.returnId,
+          sku: returnItem.sku,
+          error: error instanceof Error ? error.message : 'Unknown error during inventory restoration'
+        });
+      }
+    }
+
+    return result;
   }
 
   /**

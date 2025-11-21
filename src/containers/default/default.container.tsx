@@ -126,7 +126,12 @@ export const DefaultContainer = ({
   // Update section states based on current route
   React.useEffect(() => {
     const path = location.pathname;
-    setOrdersOpen(path.includes("/home/") || path.includes("/activeOrders/"));
+    setOrdersOpen(
+      path.includes("/home/") ||
+      path.includes("/activeOrders/") ||
+      path.includes("/order-analytics/") ||
+      path.includes("/flipkart-returns")
+    );
     setProductsOpen(
       path.includes("/products/") || path.includes("/uncategorized-products/")
     );
@@ -134,7 +139,7 @@ export const DefaultContainer = ({
       path.includes("/categories/") || path.includes("/category-groups/")
     );
     setManagementOpen(
-      path.includes("/storage-management/") || path.includes("/inventory/") || path.includes("/flipkart-returns")
+      path.includes("/storage-management/") || path.includes("/inventory/")
     );
   }, [location.pathname]);
 
@@ -251,6 +256,40 @@ export const DefaultContainer = ({
                     <ShoppingCartIcon />
                   </StyledListItemIcon>
                   <StyledListItemText primary={"Active Orders"} />
+                </StyledListItemButton>
+              </ListItem>
+            </Link>
+            <Link
+              component={RouterLink}
+              to={"/order-analytics/"}
+              data-testid="order-analytics"
+              style={{ textDecoration: "none", color: "inherit" }}
+              onClick={handleNavigation}
+            >
+              <ListItem key={"Order Analytics"} disablePadding>
+                <StyledListItemButton selected={isActiveRoute("/order-analytics/")}>
+                  <StyledListItemIcon>
+                    <AnalyticsIcon />
+                  </StyledListItemIcon>
+                  <StyledListItemText primary={"Order Analytics"} />
+                </StyledListItemButton>
+              </ListItem>
+            </Link>
+            <Link
+              component={RouterLink}
+              to={"/flipkart-returns"}
+              data-testid="flipkart-returns"
+              style={{ textDecoration: "none", color: "inherit" }}
+              onClick={handleNavigation}
+            >
+              <ListItem key={"Flipkart Returns"} disablePadding>
+                <StyledListItemButton
+                  selected={isActiveRoute("/flipkart-returns") || isActiveRoute("/flipkart-returns/list") || isActiveRoute("/flipkart-returns/upload")}
+                >
+                  <StyledListItemIcon>
+                    <AssignmentReturnIcon />
+                  </StyledListItemIcon>
+                  <StyledListItemText primary={"Flipkart Returns"} />
                 </StyledListItemButton>
               </ListItem>
             </Link>
@@ -401,24 +440,6 @@ export const DefaultContainer = ({
                 </StyledListItemButton>
               </ListItem>
             </Link>
-            <Link
-              component={RouterLink}
-              to={"/flipkart-returns"}
-              data-testid="flipkart-returns"
-              style={{ textDecoration: "none", color: "inherit" }}
-              onClick={handleNavigation}
-            >
-              <ListItem key={"Flipkart Returns"} disablePadding>
-                <StyledListItemButton
-                  selected={isActiveRoute("/flipkart-returns") || isActiveRoute("/flipkart-returns/list") || isActiveRoute("/flipkart-returns/upload")}
-                >
-                  <StyledListItemIcon>
-                    <AssignmentReturnIcon />
-                  </StyledListItemIcon>
-                  <StyledListItemText primary={"Flipkart Returns"} />
-                </StyledListItemButton>
-              </ListItem>
-            </Link>
           </List>
         </Collapse>
 
@@ -436,22 +457,6 @@ export const DefaultContainer = ({
                 <AnalyticsIcon />
               </StyledListItemIcon>
               <StyledListItemText primary={"Transaction Analytics"} />
-            </StyledListItemButton>
-          </ListItem>
-        </Link>
-        <Link
-          component={RouterLink}
-          to={"/order-analytics/"}
-          data-testid="order-analytics"
-          style={{ textDecoration: "none", color: "inherit" }}
-          onClick={handleNavigation}
-        >
-          <ListItem key={"Order Analytics"} disablePadding>
-            <StyledListItemButton selected={isActiveRoute("/order-analytics/")}>
-              <StyledListItemIcon>
-                <AnalyticsIcon />
-              </StyledListItemIcon>
-              <StyledListItemText primary={"Order Analytics"} />
             </StyledListItemButton>
           </ListItem>
         </Link>

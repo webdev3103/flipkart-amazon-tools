@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Box,
   Paper,
@@ -29,23 +29,91 @@ import {
   Category as CategoryIcon,
   CheckCircle as ResaleableIcon,
   ArrowBack as ArrowBackIcon,
+  CalendarToday as CalendarTodayIcon,
 } from '@mui/icons-material';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { useNavigate } from 'react-router-dom';
-import { useAppSelector } from '../../store/hooks';
-import { format, startOfMonth, eachMonthOfInterval, subMonths } from 'date-fns';
+import { useEffect } from 'react';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { fetchReturnsByDateRange } from '../../store/slices/flipkartReturnsSlice';
+import { format, startOfMonth, eachMonthOfInterval, subMonths, endOfDay, isWithinInterval } from 'date-fns';
+import DateRangeFilter from '../orderAnalytics/components/DateRangeFilter';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FFC658', '#8DD1E1', '#D0ED57', '#A4DE6C', '#FCCB00'];
 
 const FlipkartReturnsAnalyticsPage: React.FC = () => {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const { returns, loading } = useAppSelector((state) => state.flipkartReturns);
+
+  // Date range state
+  const [dateAnchorEl, setDateAnchorEl] = useState<null | HTMLElement>(null);
+  const [dateRange, setDateRange] = useState<{ startDate: Date; endDate: Date }>({
+    startDate: startOfMonth(new Date()),
+    endDate: endOfDay(new Date()),
+  });
+
+  // Fetch returns by date range on mount (month-to-date default)
+  useEffect(() => {
+    dispatch(
+      fetchReturnsByDateRange({
+        startDate: startOfMonth(new Date()),
+        endDate: endOfDay(new Date()),
+      })
+    );
+  }, [dispatch]);
+
+  /**
+   * Handle date range change
+   */
+  const handleDateRangeChange = (startDate: Date, endDate: Date) => {
+    setDateRange({ startDate, endDate });
+  };
+
+  /**
+   * Handle date filter click
+   */
+  const handleDateClick = (event: React.MouseEvent<HTMLElement>) => {
+    setDateAnchorEl(event.currentTarget);
+  };
+
+  /**
+   * Handle date filter close
+   */
+  const handleDateClose = () => {
+    setDateAnchorEl(null);
+    // Refetch data with new date range
+    dispatch(
+      fetchReturnsByDateRange({
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate,
+      })
+    );
+  };
+
+  // Filter returns by date range
+  // Priority: returnDeliveredDate (completion) > returnApprovedDate > returnInitiatedDate
+  const filteredReturns = useMemo(() => {
+    return returns.filter((returnItem) => {
+      // Use return completion date if available, otherwise approval date, fallback to initiated date
+      const returnDate = returnItem.dates.returnDeliveredDate
+        || returnItem.dates.returnApprovedDate
+        || returnItem.dates.returnInitiatedDate;
+
+      return isWithinInterval(new Date(returnDate), {
+        start: dateRange.startDate,
+        end: dateRange.endDate,
+      });
+    });
+  }, [returns, dateRange]);
 
   // Calculate key metrics
   const metrics = useMemo(() => {
-    const totalReturns = returns.length;
-    const totalNetLoss = returns.reduce((sum, r) => sum + r.financials.netLoss, 0);
-    const totalRefunded = returns.reduce((sum, r) => sum + r.financials.refundAmount, 0);
-    const resaleableCount = returns.filter((r) => r.resaleable).length;
+    const totalReturns = filteredReturns.length;
+    const totalNetLoss = filteredReturns.reduce((sum, r) => sum + r.financials.netLoss, 0);
+    const totalRefunded = filteredReturns.reduce((sum, r) => sum + r.financials.refundAmount, 0);
+    const resaleableCount = filteredReturns.filter((r) => r.resaleable).length;
     const averageLoss = totalReturns > 0 ? totalNetLoss / totalReturns : 0;
 
     return {
@@ -56,11 +124,11 @@ const FlipkartReturnsAnalyticsPage: React.FC = () => {
       resaleablePercentage: totalReturns > 0 ? (resaleableCount / totalReturns) * 100 : 0,
       averageLoss,
     };
-  }, [returns]);
+  }, [filteredReturns]);
 
   // Returns by category (for pie chart)
   const categoryData = useMemo(() => {
-    const categoryCounts = returns.reduce((acc, r) => {
+    const categoryCounts = filteredReturns.reduce((acc, r) => {
       const category = r.returnReasonCategory;
       acc[category] = (acc[category] || 0) + 1;
       return acc;
@@ -69,11 +137,11 @@ const FlipkartReturnsAnalyticsPage: React.FC = () => {
     return Object.entries(categoryCounts)
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
-  }, [returns]);
+  }, [filteredReturns]);
 
   // Loss by category (for bar chart)
   const categoryLossData = useMemo(() => {
-    const categoryLosses = returns.reduce((acc, r) => {
+    const categoryLosses = filteredReturns.reduce((acc, r) => {
       const category = r.returnReasonCategory;
       acc[category] = (acc[category] || 0) + r.financials.netLoss;
       return acc;
@@ -87,11 +155,11 @@ const FlipkartReturnsAnalyticsPage: React.FC = () => {
       }))
       .sort((a, b) => b.loss - a.loss)
       .slice(0, 10); // Top 10 categories
-  }, [returns]);
+  }, [filteredReturns]);
 
   // Returns trend over time (monthly)
   const trendData = useMemo(() => {
-    if (returns.length === 0) return [];
+    if (filteredReturns.length === 0) return [];
 
     const now = new Date();
     const sixMonthsAgo = subMonths(now, 5);
@@ -99,7 +167,7 @@ const FlipkartReturnsAnalyticsPage: React.FC = () => {
 
     const monthlyData = months.map((month) => {
       const monthStart = startOfMonth(month);
-      const monthReturns = returns.filter((r) => {
+      const monthReturns = filteredReturns.filter((r) => {
         const returnDate = new Date(r.dates.returnInitiatedDate);
         return (
           returnDate.getFullYear() === monthStart.getFullYear() &&
@@ -117,7 +185,7 @@ const FlipkartReturnsAnalyticsPage: React.FC = () => {
     });
 
     return monthlyData;
-  }, [returns]);
+  }, [filteredReturns]);
 
   // Resaleable vs Non-resaleable (for pie chart)
   const resaleableData = [
@@ -160,20 +228,31 @@ const FlipkartReturnsAnalyticsPage: React.FC = () => {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
-      {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => navigate('/flipkart-returns')}
-          sx={{ mr: 2 }}
-        >
-          Back
-        </Button>
-        <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-          Returns Analytics
-        </Typography>
-      </Box>
+    <LocalizationProvider dateAdapter={AdapterDateFns}>
+      <Box sx={{ p: 3 }}>
+        {/* Header */}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Button
+              startIcon={<ArrowBackIcon />}
+              onClick={() => navigate('/flipkart-returns')}
+              sx={{ mr: 2 }}
+            >
+              Back
+            </Button>
+            <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+              Returns Analytics
+            </Typography>
+          </Box>
+          <Button
+            variant="outlined"
+            startIcon={<CalendarTodayIcon />}
+            onClick={handleDateClick}
+            sx={{ textTransform: 'none' }}
+          >
+            {format(dateRange.startDate, 'dd MMM yyyy')} - {format(dateRange.endDate, 'dd MMM yyyy')}
+          </Button>
+        </Box>
 
       {/* Summary Cards */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
@@ -360,7 +439,16 @@ const FlipkartReturnsAnalyticsPage: React.FC = () => {
           </Paper>
         </Grid>
       </Grid>
+
+      {/* Date Range Filter */}
+      <DateRangeFilter
+        dateRange={dateRange}
+        onDateRangeChange={handleDateRangeChange}
+        anchorEl={dateAnchorEl}
+        onClose={handleDateClose}
+      />
     </Box>
+    </LocalizationProvider>
   );
 };
 

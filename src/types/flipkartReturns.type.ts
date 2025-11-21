@@ -111,6 +111,11 @@ export interface FlipkartReturn {
   qcStatus?: FlipkartQCStatus;
   resaleable: boolean; // Derived from QC status
   categoryId?: string; // Linked from products collection
+  pricing?: {
+    sellingPrice?: number; // Product selling price from products collection
+    costPrice?: number; // Product cost price from products collection
+    profitMargin?: number; // Calculated: sellingPrice - costPrice
+  };
   metadata: {
     createdAt: string;
     updatedAt: string;

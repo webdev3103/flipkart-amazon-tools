@@ -71,11 +71,11 @@ const OrderAnalytics: React.FC = () => {
     [allOrdersError, productsError, categoriesError]
   );
 
-  // Memoized data fetching logic
+  // Fetch data on mount only
   useEffect(() => {
     const fetchData = async () => {
       const promises = [];
-      
+
       if (allOrders.length === 0 && !allOrdersLoading && !allOrdersError) {
         promises.push(dispatch(fetchAllOrdersForAnalytics()));
       }
@@ -85,19 +85,14 @@ const OrderAnalytics: React.FC = () => {
       if (categories.length === 0 && !categoriesLoading && !categoriesError) {
         promises.push(dispatch(fetchCategories()));
       }
-      
+
       if (promises.length > 0) {
         await Promise.all(promises);
       }
     };
 
     fetchData();
-  }, [
-    allOrders.length, allOrdersLoading, allOrdersError,
-    products.length, productsLoading, productsError,
-    categories.length, categoriesLoading, categoriesError,
-    dispatch
-  ]);
+  }, []); // Run once on mount
 
   // Memoized popover handlers
   const handleFilterClick = useCallback((event: React.MouseEvent<HTMLElement>) => {

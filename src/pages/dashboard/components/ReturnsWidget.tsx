@@ -34,7 +34,7 @@ const ReturnsWidget: React.FC<ReturnsWidgetProps> = ({
   const resaleablePercentage = totalReturns > 0 ? (resaleableCount / totalReturns) * 100 : 0;
 
   // Get recent returns (last 5)
-  const recentReturns = returns
+  const recentReturns = [...returns]
     .sort((a, b) => new Date(b.dates.returnInitiatedDate).getTime() - new Date(a.dates.returnInitiatedDate).getTime())
     .slice(0, 5);
 

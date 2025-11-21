@@ -580,4 +580,154 @@ describe("FlipkartReturnsFactory", () => {
       expect(summary.skippedRows).toBe(1);
     });
   });
+
+  describe("Identifier Sanitization", () => {
+    it("should remove 'SKU:' prefix from SKU values", async () => {
+      const mockData = [
+        {
+          "Return ID": "RET001",
+          "Order ID": "ORD001",
+          "Order Date": "15-01-2024",
+          "SKU": "SKU:ABC123",
+          "FSN": "FSN123",
+          "Product Title": "Test Product",
+          "Quantity": 1,
+          "Return Reason": "Defective",
+          "Return Type": "Customer Return",
+          "Return Status": "Approved",
+          "Return Initiated Date": "20-01-2024",
+          "Refund Amount (INR)": "1500",
+          "Reverse Pickup Charges (INR)": "50",
+          "Commission Reversal (INR)": "100",
+          "Settlement Amount (INR)": "1450",
+        },
+      ];
+
+      const file = createMockExcelFile(mockData);
+      const factory = new FlipkartReturnsFactory(file);
+      await factory.process();
+
+      expect(factory.returns).toHaveLength(1);
+      expect(factory.returns[0].sku).toBe("ABC123");
+      expect(factory.returns[0].sku).not.toContain("SKU:");
+    });
+
+    it("should remove 'ORDER:' prefix from Order ID values", async () => {
+      const mockData = [
+        {
+          "Return ID": "RET001",
+          "Order ID": "ORDER:12345678",
+          "Order Date": "15-01-2024",
+          "SKU": "ABC123",
+          "FSN": "FSN123",
+          "Product Title": "Test Product",
+          "Quantity": 1,
+          "Return Reason": "Defective",
+          "Return Type": "Customer Return",
+          "Return Status": "Approved",
+          "Return Initiated Date": "20-01-2024",
+          "Refund Amount (INR)": "1500",
+          "Reverse Pickup Charges (INR)": "50",
+          "Commission Reversal (INR)": "100",
+          "Settlement Amount (INR)": "1450",
+        },
+      ];
+
+      const file = createMockExcelFile(mockData);
+      const factory = new FlipkartReturnsFactory(file);
+      await factory.process();
+
+      expect(factory.returns).toHaveLength(1);
+      expect(factory.returns[0].orderId).toBe("12345678");
+      expect(factory.returns[0].orderId).not.toContain("ORDER:");
+    });
+
+    it("should handle SKU with spaces around colon", async () => {
+      const mockData = [
+        {
+          "Return ID": "RET001",
+          "Order ID": "ORD001",
+          "Order Date": "15-01-2024",
+          "SKU": "SKU : XYZ789",
+          "FSN": "FSN789",
+          "Product Title": "Test Product",
+          "Quantity": 1,
+          "Return Reason": "Defective",
+          "Return Type": "Customer Return",
+          "Return Status": "Approved",
+          "Return Initiated Date": "20-01-2024",
+          "Refund Amount (INR)": "1500",
+          "Reverse Pickup Charges (INR)": "50",
+          "Commission Reversal (INR)": "100",
+          "Settlement Amount (INR)": "1450",
+        },
+      ];
+
+      const file = createMockExcelFile(mockData);
+      const factory = new FlipkartReturnsFactory(file);
+      await factory.process();
+
+      expect(factory.returns).toHaveLength(1);
+      expect(factory.returns[0].sku).toBe("XYZ789");
+    });
+
+    it("should preserve SKU values without prefix", async () => {
+      const mockData = [
+        {
+          "Return ID": "RET001",
+          "Order ID": "ORD001",
+          "Order Date": "15-01-2024",
+          "SKU": "PLAIN123",
+          "FSN": "FSN123",
+          "Product Title": "Test Product",
+          "Quantity": 1,
+          "Return Reason": "Defective",
+          "Return Type": "Customer Return",
+          "Return Status": "Approved",
+          "Return Initiated Date": "20-01-2024",
+          "Refund Amount (INR)": "1500",
+          "Reverse Pickup Charges (INR)": "50",
+          "Commission Reversal (INR)": "100",
+          "Settlement Amount (INR)": "1450",
+        },
+      ];
+
+      const file = createMockExcelFile(mockData);
+      const factory = new FlipkartReturnsFactory(file);
+      await factory.process();
+
+      expect(factory.returns).toHaveLength(1);
+      expect(factory.returns[0].sku).toBe("PLAIN123");
+    });
+
+    it("should handle both SKU and Order ID prefixes in same row", async () => {
+      const mockData = [
+        {
+          "Return ID": "RET001",
+          "Order ID": "ORDER:99999999",
+          "Order Date": "15-01-2024",
+          "SKU": "SKU:TEST456",
+          "FSN": "FSN456",
+          "Product Title": "Test Product",
+          "Quantity": 1,
+          "Return Reason": "Defective",
+          "Return Type": "Customer Return",
+          "Return Status": "Approved",
+          "Return Initiated Date": "20-01-2024",
+          "Refund Amount (INR)": "1500",
+          "Reverse Pickup Charges (INR)": "50",
+          "Commission Reversal (INR)": "100",
+          "Settlement Amount (INR)": "1450",
+        },
+      ];
+
+      const file = createMockExcelFile(mockData);
+      const factory = new FlipkartReturnsFactory(file);
+      await factory.process();
+
+      expect(factory.returns).toHaveLength(1);
+      expect(factory.returns[0].sku).toBe("TEST456");
+      expect(factory.returns[0].orderId).toBe("99999999");
+    });
+  });
 });

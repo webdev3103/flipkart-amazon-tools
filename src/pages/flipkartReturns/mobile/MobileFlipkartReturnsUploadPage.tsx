@@ -110,10 +110,8 @@ export const MobileFlipkartReturnsUploadPage: React.FC = () => {
       // Clear after successful upload
       setSelectedFile(null);
       setPreviewReturns([]);
-    } catch (err) {
-      // Log error for debugging
-      console.error('[MobileFlipkartReturnsUploadPage] Upload error:', err);
-      // Error is also handled by Redux and shown in UI via error state
+    } catch {
+      // Error is handled by Redux and shown in UI via error state
     }
   };
 

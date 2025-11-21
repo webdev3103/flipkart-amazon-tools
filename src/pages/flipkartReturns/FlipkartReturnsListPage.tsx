@@ -12,6 +12,7 @@ import {
   TableHead,
   TableRow,
   TablePagination,
+  TableSortLabel,
   Chip,
   CircularProgress,
   Alert,
@@ -32,23 +33,27 @@ import {
   FileDownload as FileDownloadIcon,
   Upload as UploadIcon,
   Assessment as AnalyticsIcon,
+  CalendarToday as CalendarTodayIcon,
 } from '@mui/icons-material';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import {
-  fetchReturns,
+  fetchReturnsByDateRange,
   setFilters,
-  clearFilters,
 } from '../../store/slices/flipkartReturnsSlice';
 import {
   FlipkartReturnStatus,
   FlipkartReturnReasonCategory,
   FlipkartQCStatus,
   FlipkartReturn,
+  FlipkartReturnType,
 } from '../../types/flipkartReturns.type';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfDay } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import ReturnDetailsModal from './components/ReturnDetailsModal';
 import { MobileFlipkartReturnsPage } from './mobile/MobileFlipkartReturnsPage';
+import DateRangeFilter from '../orderAnalytics/components/DateRangeFilter';
 
 /**
  * FlipkartReturnsListPage
@@ -80,15 +85,41 @@ const FlipkartReturnsListPage: React.FC = () => {
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<FlipkartReturnStatus[]>([]);
+  const [returnTypeFilter, setReturnTypeFilter] = useState<FlipkartReturnType[]>([]);
   const [reasonFilter, setReasonFilter] = useState<FlipkartReturnReasonCategory[]>([]);
   const [qcFilter, setQcFilter] = useState<FlipkartQCStatus[]>([]);
   const [resaleableOnly, setResaleableOnly] = useState(false);
   const [selectedReturn, setSelectedReturn] = useState<FlipkartReturn | null>(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [dateAnchorEl, setDateAnchorEl] = useState<null | HTMLElement>(null);
+  const [dateRange, setDateRange] = useState<{ startDate: Date; endDate: Date }>({
+    startDate: startOfMonth(new Date()),
+    endDate: endOfDay(new Date()),
+  });
+  const [orderBy, setOrderBy] = useState<keyof FlipkartReturn | 'completionDate' | 'sellingPrice'>('returnId');
+  const [order, setOrder] = useState<'asc' | 'desc'>('desc');
 
-  // Fetch returns on mount
+  // Fetch returns by date range on mount (month-to-date default)
   useEffect(() => {
-    dispatch(fetchReturns());
+    const defaultStart = startOfMonth(new Date());
+    const defaultEnd = endOfDay(new Date());
+
+    dispatch(
+      fetchReturnsByDateRange({
+        startDate: defaultStart,
+        endDate: defaultEnd,
+      })
+    ).then(() => {
+      // After fetching, apply client-side filters including date priority
+      dispatch(
+        setFilters({
+          dateRange: {
+            start: defaultStart,
+            end: defaultEnd,
+          },
+        })
+      );
+    });
   }, [dispatch]);
 
   /**
@@ -99,12 +130,61 @@ const FlipkartReturnsListPage: React.FC = () => {
       setFilters({
         searchQuery: searchQuery || undefined,
         status: statusFilter.length > 0 ? statusFilter : undefined,
+        returnType: returnTypeFilter.length > 0 ? returnTypeFilter : undefined,
         returnReasonCategory: reasonFilter.length > 0 ? reasonFilter : undefined,
         qcStatus: qcFilter.length > 0 ? qcFilter : undefined,
         resaleableOnly: resaleableOnly || undefined,
+        dateRange: {
+          start: dateRange.startDate,
+          end: dateRange.endDate,
+        },
       })
     );
     setPage(0);
+  };
+
+  /**
+   * Handle date range change
+   */
+  const handleDateRangeChange = (startDate: Date, endDate: Date) => {
+    setDateRange({ startDate, endDate });
+  };
+
+  /**
+   * Handle date filter click
+   */
+  const handleDateClick = (event: React.MouseEvent<HTMLElement>) => {
+    setDateAnchorEl(event.currentTarget);
+  };
+
+  /**
+   * Handle date filter close
+   */
+  const handleDateClose = () => {
+    setDateAnchorEl(null);
+    // Refetch data with new date range
+    dispatch(
+      fetchReturnsByDateRange({
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate,
+      })
+    ).then(() => {
+      // After fetching, apply client-side filters including date priority
+      dispatch(
+        setFilters({
+          searchQuery: searchQuery || undefined,
+          status: statusFilter.length > 0 ? statusFilter : undefined,
+          returnType: returnTypeFilter.length > 0 ? returnTypeFilter : undefined,
+          returnReasonCategory: reasonFilter.length > 0 ? reasonFilter : undefined,
+          qcStatus: qcFilter.length > 0 ? qcFilter : undefined,
+          resaleableOnly: resaleableOnly || undefined,
+          dateRange: {
+            start: dateRange.startDate,
+            end: dateRange.endDate,
+          },
+        })
+      );
+    });
   };
 
   /**
@@ -113,10 +193,32 @@ const FlipkartReturnsListPage: React.FC = () => {
   const handleClearFilters = () => {
     setSearchQuery('');
     setStatusFilter([]);
+    setReturnTypeFilter([]);
     setReasonFilter([]);
     setQcFilter([]);
     setResaleableOnly(false);
-    dispatch(clearFilters());
+    const defaultDateRange = {
+      startDate: startOfMonth(new Date()),
+      endDate: endOfDay(new Date()),
+    };
+    setDateRange(defaultDateRange);
+    // Refetch with default month-to-date range
+    dispatch(
+      fetchReturnsByDateRange({
+        startDate: defaultDateRange.startDate,
+        endDate: defaultDateRange.endDate,
+      })
+    ).then(() => {
+      // After fetching, apply client-side filters including date priority
+      dispatch(
+        setFilters({
+          dateRange: {
+            start: defaultDateRange.startDate,
+            end: defaultDateRange.endDate,
+          },
+        })
+      );
+    });
     setPage(0);
   };
 
@@ -126,6 +228,14 @@ const FlipkartReturnsListPage: React.FC = () => {
   const handleStatusFilterChange = (event: SelectChangeEvent<string[]>) => {
     const value = event.target.value;
     setStatusFilter(typeof value === 'string' ? [] : (value as FlipkartReturnStatus[]));
+  };
+
+  /**
+   * Handle return type filter change
+   */
+  const handleReturnTypeFilterChange = (event: SelectChangeEvent<string[]>) => {
+    const value = event.target.value;
+    setReturnTypeFilter(typeof value === 'string' ? [] : (value as FlipkartReturnType[]));
   };
 
   /**
@@ -188,15 +298,13 @@ const FlipkartReturnsListPage: React.FC = () => {
       'Order ID',
       'SKU',
       'Product Title',
+      'Selling Price',
       'Reason',
       'Type',
       'Status',
-      'QC Status',
-      'Refund Amount',
       'Reverse Pickup Charges',
       'Commission Reversal',
-      'Net Loss',
-      'Return Date',
+      'Completion Date',
       'Resaleable',
     ];
 
@@ -205,15 +313,13 @@ const FlipkartReturnsListPage: React.FC = () => {
       r.orderId,
       r.sku,
       r.productTitle,
+      r.pricing?.sellingPrice !== undefined ? r.pricing.sellingPrice : 'N/A',
       r.returnReasonCategory,
       r.returnType,
       r.returnStatus,
-      r.qcStatus || '',
-      r.financials.refundAmount,
       r.financials.reversePickupCharges,
       r.financials.commissionReversal,
-      r.financials.netLoss,
-      format(r.dates.returnInitiatedDate, 'yyyy-MM-dd'),
+      r.dates.returnDeliveredDate ? format(r.dates.returnDeliveredDate, 'yyyy-MM-dd') : '-',
       r.resaleable ? 'Yes' : 'No',
     ]);
 
@@ -234,6 +340,47 @@ const FlipkartReturnsListPage: React.FC = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  /**
+   * Handle sort request
+   */
+  const handleRequestSort = (property: keyof FlipkartReturn | 'completionDate' | 'sellingPrice') => {
+    const isAsc = orderBy === property && order === 'asc';
+    setOrder(isAsc ? 'desc' : 'asc');
+    setOrderBy(property);
+  };
+
+  /**
+   * Comparator function for sorting
+   */
+  const getComparator = (order: 'asc' | 'desc', orderBy: keyof FlipkartReturn | 'completionDate' | 'sellingPrice') => {
+    return (a: FlipkartReturn, b: FlipkartReturn) => {
+      let aValue: string | number | Date;
+      let bValue: string | number | Date;
+
+      if (orderBy === 'completionDate') {
+        aValue = a.dates.returnDeliveredDate ? new Date(a.dates.returnDeliveredDate).getTime() : 0;
+        bValue = b.dates.returnDeliveredDate ? new Date(b.dates.returnDeliveredDate).getTime() : 0;
+      } else if (orderBy === 'sellingPrice') {
+        aValue = a.pricing?.sellingPrice || 0;
+        bValue = b.pricing?.sellingPrice || 0;
+      } else {
+        // Access nested properties safely
+        const aObj = a as unknown as Record<string, string | number | Date>;
+        const bObj = b as unknown as Record<string, string | number | Date>;
+        aValue = aObj[orderBy] || '';
+        bValue = bObj[orderBy] || '';
+      }
+
+      if (bValue < aValue) {
+        return order === 'desc' ? -1 : 1;
+      }
+      if (bValue > aValue) {
+        return order === 'desc' ? 1 : -1;
+      }
+      return 0;
+    };
   };
 
   /**
@@ -267,42 +414,52 @@ const FlipkartReturnsListPage: React.FC = () => {
     return 'default';
   };
 
-  // Paginated returns
-  const paginatedReturns = filteredReturns.slice(
+  // Sorted and paginated returns
+  const sortedReturns = [...filteredReturns].sort(getComparator(order, orderBy));
+  const paginatedReturns = sortedReturns.slice(
     page * rowsPerPage,
     page * rowsPerPage + rowsPerPage
   );
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">Flipkart Returns</Typography>
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button
-            variant="outlined"
-            startIcon={<AnalyticsIcon />}
-            onClick={() => navigate('/flipkart-returns/analytics')}
-            disabled={filteredReturns.length === 0}
-          >
-            Analytics
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<UploadIcon />}
-            onClick={() => navigate('/flipkart-returns/upload')}
-          >
-            Upload Returns
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<FileDownloadIcon />}
-            onClick={handleExport}
-            disabled={filteredReturns.length === 0}
-          >
-            Export CSV
-          </Button>
+    <LocalizationProvider dateAdapter={AdapterDateFns}>
+      <Box sx={{ p: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h4">Flipkart Returns</Typography>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Button
+              variant="outlined"
+              startIcon={<CalendarTodayIcon />}
+              onClick={handleDateClick}
+              sx={{ textTransform: 'none' }}
+            >
+              {format(dateRange.startDate, 'dd MMM yyyy')} - {format(dateRange.endDate, 'dd MMM yyyy')}
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<AnalyticsIcon />}
+              onClick={() => navigate('/flipkart-returns/analytics')}
+              disabled={filteredReturns.length === 0}
+            >
+              Analytics
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<UploadIcon />}
+              onClick={() => navigate('/flipkart-returns/upload')}
+            >
+              Upload Returns
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<FileDownloadIcon />}
+              onClick={handleExport}
+              disabled={filteredReturns.length === 0}
+            >
+              Export CSV
+            </Button>
+          </Box>
         </Box>
-      </Box>
 
       {/* Error Alert */}
       {error && (
@@ -341,6 +498,24 @@ const FlipkartReturnsListPage: React.FC = () => {
               {Object.values(FlipkartReturnStatus).map((status) => (
                 <MenuItem key={status} value={status}>
                   {status}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          {/* Return Type Filter */}
+          <FormControl size="small" sx={{ minWidth: 150 }}>
+            <InputLabel>Return Type</InputLabel>
+            <Select
+              multiple
+              value={returnTypeFilter}
+              onChange={handleReturnTypeFilterChange}
+              label="Return Type"
+              renderValue={(selected) => `${selected.length} selected`}
+            >
+              {Object.values(FlipkartReturnType).map((type) => (
+                <MenuItem key={type} value={type}>
+                  {type}
                 </MenuItem>
               ))}
             </Select>
@@ -428,23 +603,85 @@ const FlipkartReturnsListPage: React.FC = () => {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>Return ID</TableCell>
-                  <TableCell>Order ID</TableCell>
-                  <TableCell>SKU</TableCell>
-                  <TableCell>Product</TableCell>
-                  <TableCell>Reason</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>QC Status</TableCell>
-                  <TableCell align="right">Refund Amount</TableCell>
-                  <TableCell align="right">Net Loss</TableCell>
-                  <TableCell>Return Date</TableCell>
+                  <TableCell>
+                    <TableSortLabel
+                      active={orderBy === 'returnId'}
+                      direction={orderBy === 'returnId' ? order : 'asc'}
+                      onClick={() => handleRequestSort('returnId')}
+                    >
+                      Return ID
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell>
+                    <TableSortLabel
+                      active={orderBy === 'orderId'}
+                      direction={orderBy === 'orderId' ? order : 'asc'}
+                      onClick={() => handleRequestSort('orderId')}
+                    >
+                      Order ID
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell>
+                    <TableSortLabel
+                      active={orderBy === 'sku'}
+                      direction={orderBy === 'sku' ? order : 'asc'}
+                      onClick={() => handleRequestSort('sku')}
+                    >
+                      SKU
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell>
+                    <TableSortLabel
+                      active={orderBy === 'productTitle'}
+                      direction={orderBy === 'productTitle' ? order : 'asc'}
+                      onClick={() => handleRequestSort('productTitle')}
+                    >
+                      Product
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell align="right">
+                    <TableSortLabel
+                      active={orderBy === 'sellingPrice'}
+                      direction={orderBy === 'sellingPrice' ? order : 'asc'}
+                      onClick={() => handleRequestSort('sellingPrice')}
+                    >
+                      Selling Price
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell>
+                    <TableSortLabel
+                      active={orderBy === 'returnReasonCategory'}
+                      direction={orderBy === 'returnReasonCategory' ? order : 'asc'}
+                      onClick={() => handleRequestSort('returnReasonCategory')}
+                    >
+                      Reason
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell>
+                    <TableSortLabel
+                      active={orderBy === 'returnStatus'}
+                      direction={orderBy === 'returnStatus' ? order : 'asc'}
+                      onClick={() => handleRequestSort('returnStatus')}
+                    >
+                      Status
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell>
+                    <TableSortLabel
+                      active={orderBy === 'completionDate'}
+                      direction={orderBy === 'completionDate' ? order : 'asc'}
+                      onClick={() => handleRequestSort('completionDate')}
+                    >
+                      Completion Date
+                    </TableSortLabel>
+                  </TableCell>
                   <TableCell align="center">Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {paginatedReturns.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={11} align="center">
+                    <TableCell colSpan={9} align="center">
                       <Typography variant="body2" color="text.secondary" sx={{ py: 4 }}>
                         No returns found. Try adjusting your filters or upload a returns file.
                       </Typography>
@@ -461,6 +698,15 @@ const FlipkartReturnsListPage: React.FC = () => {
                           {returnItem.productTitle}
                         </Typography>
                       </TableCell>
+                      <TableCell align="right">
+                        {returnItem.pricing?.sellingPrice !== undefined ? (
+                          `₹${returnItem.pricing.sellingPrice.toFixed(2)}`
+                        ) : (
+                          <Typography variant="body2" color="text.secondary">
+                            N/A
+                          </Typography>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <Chip
                           label={returnItem.returnReasonCategory}
@@ -476,28 +722,13 @@ const FlipkartReturnsListPage: React.FC = () => {
                         />
                       </TableCell>
                       <TableCell>
-                        {returnItem.qcStatus && (
-                          <Chip
-                            label={returnItem.qcStatus}
-                            size="small"
-                            color={returnItem.resaleable ? 'success' : 'default'}
-                          />
+                        {returnItem.dates.returnDeliveredDate ? (
+                          format(returnItem.dates.returnDeliveredDate, 'dd MMM yyyy')
+                        ) : (
+                          <Typography variant="body2" color="text.secondary">
+                            -
+                          </Typography>
                         )}
-                      </TableCell>
-                      <TableCell align="right">
-                        ₹{returnItem.financials.refundAmount.toFixed(2)}
-                      </TableCell>
-                      <TableCell align="right">
-                        <Typography
-                          variant="body2"
-                          color={returnItem.financials.netLoss > 0 ? 'error' : 'success'}
-                          fontWeight="medium"
-                        >
-                          ₹{returnItem.financials.netLoss.toFixed(2)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        {format(returnItem.dates.returnInitiatedDate, 'dd MMM yyyy')}
                       </TableCell>
                       <TableCell align="center">
                         <Tooltip title="View Details">
@@ -535,7 +766,16 @@ const FlipkartReturnsListPage: React.FC = () => {
         returnItem={selectedReturn}
         onClose={handleCloseDetailsModal}
       />
+
+      {/* Date Range Filter */}
+      <DateRangeFilter
+        dateRange={dateRange}
+        onDateRangeChange={handleDateRangeChange}
+        anchorEl={dateAnchorEl}
+        onClose={handleDateClose}
+      />
     </Box>
+    </LocalizationProvider>
   );
 };
 

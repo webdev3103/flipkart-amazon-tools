@@ -21,8 +21,12 @@ import {
   FlipkartReturnReasonCategory,
   ReturnsFilters,
 } from "../../types/flipkartReturns.type";
+import { Product } from "../../types/product";
+import { Category } from "../../types/category";
 
 const RETURNS_COLLECTION = "flipkartReturns";
+const PRODUCTS_COLLECTION = "products";
+const CATEGORIES_COLLECTION = "categories";
 
 /**
  * FlipkartReturnsService
@@ -31,6 +35,94 @@ const RETURNS_COLLECTION = "flipkartReturns";
  * Provides CRUD operations, querying, and analytics helpers.
  */
 export class FlipkartReturnsService {
+  /**
+   * Enrich returns with product pricing data
+   * Maps SKU to product selling price and cost price from products/categories
+   */
+  async enrichReturnsWithPricing(returns: FlipkartReturn[]): Promise<FlipkartReturn[]> {
+    // Get unique SKUs
+    const uniqueSkus = [...new Set(returns.map(r => r.sku))];
+
+    // Batch fetch all products by SKU
+    const productsMap = new Map<string, Product>();
+    const categoriesMap = new Map<string, Category>();
+
+    // Fetch products in batches (Firestore 'in' query supports max 30 items)
+    const skuBatches: string[][] = [];
+    for (let i = 0; i < uniqueSkus.length; i += 30) {
+      skuBatches.push(uniqueSkus.slice(i, i + 30));
+    }
+
+    for (const skuBatch of skuBatches) {
+      const productsQuery = query(
+        collection(db, PRODUCTS_COLLECTION),
+        where("sku", "in", skuBatch)
+      );
+      const productsSnapshot = await getDocs(productsQuery);
+      productsSnapshot.forEach(doc => {
+        const product = doc.data() as Product;
+        productsMap.set(product.sku, product);
+      });
+    }
+
+    // Get unique category IDs from products
+    const categoryIds = [
+      ...new Set(
+        Array.from(productsMap.values())
+          .map(p => p.categoryId)
+          .filter((id): id is string => !!id)
+      )
+    ];
+
+    // Fetch categories for cost price resolution
+    if (categoryIds.length > 0) {
+      const categoryBatches: string[][] = [];
+      for (let i = 0; i < categoryIds.length; i += 30) {
+        categoryBatches.push(categoryIds.slice(i, i + 30));
+      }
+
+      for (const categoryBatch of categoryBatches) {
+        const categoriesQuery = query(
+          collection(db, CATEGORIES_COLLECTION),
+          where("__name__", "in", categoryBatch)
+        );
+        const categoriesSnapshot = await getDocs(categoriesQuery);
+        categoriesSnapshot.forEach(doc => {
+          categoriesMap.set(doc.id, doc.data() as Category);
+        });
+      }
+    }
+
+    // Enrich returns with pricing data
+    return returns.map(returnItem => {
+      const product = productsMap.get(returnItem.sku);
+
+      if (!product) {
+        return returnItem; // No product found, return unchanged
+      }
+
+      const sellingPrice = product.sellingPrice || 0;
+
+      // Resolve cost price: product's category costPrice or 0
+      let costPrice = 0;
+      if (product.categoryId) {
+        const category = categoriesMap.get(product.categoryId);
+        costPrice = category?.costPrice || 0;
+      }
+
+      const profitMargin = sellingPrice - costPrice;
+
+      return {
+        ...returnItem,
+        pricing: {
+          sellingPrice,
+          costPrice,
+          profitMargin,
+        },
+      };
+    });
+  }
+
   /**
    * Save multiple returns to Firestore (batch operation)
    * Used after parsing Excel file
@@ -367,6 +459,69 @@ export class FlipkartReturnsService {
       console.log('[batchCheckExistingReturns] Proceeding without duplicate check - assuming all returns are new');
       return new Set();
     }
+  }
+
+  /**
+   * Batch fetch existing returns by IDs
+   * Returns a Map of returnId -> FlipkartReturn for existing returns
+   */
+  async batchFetchExistingReturns(returnIds: string[]): Promise<Map<string, FlipkartReturn>> {
+    if (!returnIds || returnIds.length === 0) {
+      return new Map();
+    }
+
+    console.log('[batchFetchExistingReturns] Fetching', returnIds.length, 'existing returns');
+
+    try {
+      const returnsRef = collection(db, RETURNS_COLLECTION);
+      const snapshot = await getDocs(returnsRef);
+
+      const existingReturns = new Map<string, FlipkartReturn>();
+      snapshot.forEach((doc) => {
+        if (returnIds.includes(doc.id)) {
+          existingReturns.set(doc.id, this.deserializeReturn(doc.data()));
+        }
+      });
+
+      console.log('[batchFetchExistingReturns] Found', existingReturns.size, 'existing returns');
+      return existingReturns;
+    } catch (error) {
+      console.warn('[batchFetchExistingReturns] Could not fetch existing returns:', error);
+      return new Map();
+    }
+  }
+
+  /**
+   * Update multiple returns (batch operation)
+   * Merges new data with existing returns, preserving pricing enrichment
+   */
+  async updateReturns(returns: FlipkartReturn[]): Promise<void> {
+    if (!returns || returns.length === 0) {
+      throw new Error("No returns to update");
+    }
+
+    console.log('[updateReturns] Updating', returns.length, 'returns');
+
+    // Firestore batch limit is 500 operations
+    const batchSize = 500;
+    const batches: FlipkartReturn[][] = [];
+
+    for (let i = 0; i < returns.length; i += batchSize) {
+      batches.push(returns.slice(i, i + batchSize));
+    }
+
+    for (const batch of batches) {
+      const writeBatchObj = writeBatch(db);
+
+      batch.forEach((returnItem) => {
+        const returnRef = doc(db, RETURNS_COLLECTION, returnItem.returnId);
+        writeBatchObj.set(returnRef, this.serializeReturn(returnItem), { merge: true });
+      });
+
+      await writeBatchObj.commit();
+    }
+
+    console.log('[updateReturns] Successfully updated', returns.length, 'returns');
   }
 
   /**

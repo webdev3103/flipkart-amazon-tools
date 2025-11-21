@@ -296,6 +296,39 @@ const ReturnDetailsModal: React.FC<ReturnDetailsModalProps> = ({ open, returnIte
           <Paper variant="outlined" sx={{ p: 2 }}>
             <Table size="small">
               <TableBody>
+                {/* Product Pricing */}
+                {returnItem.pricing && (
+                  <>
+                    {returnItem.pricing.sellingPrice !== undefined && (
+                      <TableRow>
+                        <TableCell>Product Selling Price</TableCell>
+                        <TableCell align="right">₹{returnItem.pricing.sellingPrice.toFixed(2)}</TableCell>
+                      </TableRow>
+                    )}
+                    {returnItem.pricing.costPrice !== undefined && (
+                      <TableRow>
+                        <TableCell>Product Cost Price</TableCell>
+                        <TableCell align="right">₹{returnItem.pricing.costPrice.toFixed(2)}</TableCell>
+                      </TableRow>
+                    )}
+                    {returnItem.pricing.profitMargin !== undefined && (
+                      <TableRow>
+                        <TableCell>Product Profit Margin</TableCell>
+                        <TableCell
+                          align="right"
+                          sx={{ color: returnItem.pricing.profitMargin >= 0 ? 'success.main' : 'error.main' }}
+                        >
+                          ₹{returnItem.pricing.profitMargin.toFixed(2)}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    <TableRow>
+                      <TableCell colSpan={2}>
+                        <Divider sx={{ my: 1 }} />
+                      </TableCell>
+                    </TableRow>
+                  </>
+                )}
                 <TableRow>
                   <TableCell>Refund Amount</TableCell>
                   <TableCell align="right">₹{returnItem.financials.refundAmount.toFixed(2)}</TableCell>

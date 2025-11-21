@@ -66,12 +66,6 @@ export class FlipkartReturnsFactory {
 
       // Just validate that sheet exists and has some cells
       // Actual parsing will be done in parseReturnsSheet()
-      console.log('[FlipkartReturnsFactory] readWorkbook diagnostics:');
-      console.log('  - Total sheets found:', this.workbook.SheetNames.length);
-      console.log('  - Sheet names:', this.workbook.SheetNames);
-      console.log('  - Selected sheet:', returnsSheet);
-      console.log('  - Sheet has range:', sheet['!ref']);
-
       if (!sheet || !sheet['!ref']) {
         throw new Error(
           `Returns sheet "${returnsSheet}" is empty or invalid. ` +
@@ -113,8 +107,8 @@ export class FlipkartReturnsFactory {
           }
         });
       }
-    } catch (error) {
-      console.error("Error extracting category information:", error);
+    } catch {
+      // Silently ignore category extraction errors - category mapping is optional
     }
   }
 
@@ -138,16 +132,11 @@ export class FlipkartReturnsFactory {
 
     // Parse with options to handle various Excel formats - try with range to skip potential empty rows
     const range = returnsSheet['!ref'];
-    console.log('[FlipkartReturnsFactory] parseReturnsSheet diagnostics:');
-    console.log('  - Sheet range (metadata):', range);
-
     // IMPORTANT: Some Excel files have incorrect !ref range metadata
     // Fix by scanning for actual data and updating the range
     if (range) {
       const actualRange = this.findActualDataRange(returnsSheet);
-      console.log('  - Actual data range (scanned):', actualRange);
       if (actualRange && actualRange !== range) {
-        console.log('  - Correcting sheet range from', range, 'to', actualRange);
         returnsSheet['!ref'] = actualRange;
       }
     }
@@ -160,23 +149,18 @@ export class FlipkartReturnsFactory {
       range: 0 // Start from first row
     });
 
-    console.log('  - Parsed rows (including potential header):', rawParsed.length);
-
     // Check if this is native Flipkart format (snake_case) or custom format (Title Case)
     if (rawParsed.length > 0) {
       const firstRow = rawParsed[0] as Record<string, unknown>;
       const columns = Object.keys(firstRow);
-      console.log('  - First row columns:', columns);
 
       // Detect format by checking for snake_case columns
       this.isNativeFormat = columns.some(col => col.includes('_'));
-      console.log('  - Detected format:', this.isNativeFormat ? 'Native (snake_case)' : 'Custom (Title Case)');
 
       if (this.isNativeFormat) {
         // Convert native format to standard format
         const nativeData = rawParsed as FlipkartReturnsDataNative[];
         this.returnsData = nativeData.map(row => this.normalizeNativeRow(row));
-        console.log('  - Converted native rows to standard format:', this.returnsData.length);
       } else {
         this.returnsData = rawParsed as FlipkartReturnsData[];
       }
@@ -185,13 +169,6 @@ export class FlipkartReturnsFactory {
     if (!this.returnsData || this.returnsData.length === 0) {
       // Try alternative parsing method for troubleshooting
       const rawData = XLSX.utils.sheet_to_json(returnsSheet, { header: 1 });
-      console.log('  - Raw data rows (with header row):', rawData.length);
-      if (rawData.length > 0) {
-        console.log('  - Raw headers (row 1):', rawData[0]);
-        if (rawData.length > 1) {
-          console.log('  - Sample data (row 2):', rawData[1]);
-        }
-      }
 
       throw new Error(
         `No data found in returns sheet. ` +
@@ -287,8 +264,24 @@ export class FlipkartReturnsFactory {
    */
   private rowToReturn(row: FlipkartReturnsData): FlipkartReturn | null {
     if (!row["Return ID"] || !row["Order ID"]) {
-      console.warn("Skipping row with missing Return ID or Order ID", row);
       return null;
+    }
+
+    // Sanitize identifiers by removing common prefixes (SKU, ORDER, RI, OI)
+    const sku = this.sanitizeIdentifier(row["SKU"].toString(), 'SKU');
+
+    // Sanitize Return ID - try "RI:" first, if not found keep original
+    let returnId = this.sanitizeIdentifier(row["Return ID"].toString(), 'RI');
+    if (returnId === row["Return ID"].toString().trim()) {
+      // No "RI:" prefix found, use the original value
+      returnId = row["Return ID"].toString().trim();
+    }
+
+    // Sanitize Order ID - try "OI:" first, then "ORDER:" if not found
+    let orderId = this.sanitizeIdentifier(row["Order ID"].toString(), 'OI');
+    if (orderId === row["Order ID"].toString().trim()) {
+      // No "OI:" prefix found, try "ORDER:" prefix
+      orderId = this.sanitizeIdentifier(row["Order ID"].toString(), 'ORDER');
     }
 
     // Parse financial values
@@ -332,16 +325,16 @@ export class FlipkartReturnsFactory {
     // Determine if resaleable
     const resaleable = qcStatus === FlipkartQCStatus.RESALEABLE;
 
-    // Get category ID if available
-    const categoryId = this.getCategoryId(row["SKU"]);
+    // Get category ID if available (use cleaned SKU)
+    const categoryId = this.getCategoryId(sku);
 
     const now = new Date().toISOString();
 
     return {
-      returnId: row["Return ID"].toString(),
-      orderId: row["Order ID"].toString(),
+      returnId: returnId,
+      orderId: orderId,
       platform: 'flipkart',
-      sku: row["SKU"].toString(),
+      sku: sku,
       fsn: row["FSN"]?.toString() || "",
       productTitle: row["Product Title"] || "",
       quantity: Number(row["Quantity"]) || 1,
@@ -371,6 +364,36 @@ export class FlipkartReturnsFactory {
         importedAt: now,
       },
     };
+  }
+
+  /**
+   * Sanitize identifiers by removing common prefixes
+   * Handles formats like "SKU:ABC123", "ORDER:12345", "RI:RET123", "OI:OID456", etc.
+   *
+   * @param value - The identifier value to sanitize
+   * @param expectedPrefix - The expected prefix type ('SKU', 'ORDER', 'RI', 'OI')
+   * @returns Cleaned identifier without prefix
+   */
+  private sanitizeIdentifier(value: string, expectedPrefix: 'SKU' | 'ORDER' | 'RI' | 'OI'): string {
+    if (!value) return '';
+
+    // Trim whitespace
+    let cleaned = value.trim();
+
+    // Remove common prefixes (case-insensitive)
+    const prefixPatterns = [
+      new RegExp(`^${expectedPrefix}\\s*:\\s*`, 'i'),  // "SKU: ABC123" or "SKU:ABC123"
+      new RegExp(`^${expectedPrefix}\\s+`, 'i'),        // "SKU ABC123"
+    ];
+
+    for (const pattern of prefixPatterns) {
+      if (pattern.test(cleaned)) {
+        cleaned = cleaned.replace(pattern, '');
+        break;
+      }
+    }
+
+    return cleaned.trim();
   }
 
   /**
@@ -407,7 +430,6 @@ export class FlipkartReturnsFactory {
     }
 
     // Fallback to current date if parsing fails
-    console.warn(`Failed to parse date: ${dateStr}, using current date`);
     return new Date();
   }
 
