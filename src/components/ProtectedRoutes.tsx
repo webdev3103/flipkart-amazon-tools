@@ -101,6 +101,23 @@ const InventoryPage = React.lazy(() =>
   }))
 );
 
+const FlipkartReturnsUploadPage = React.lazy(() =>
+  import("../pages/flipkartReturns/FlipkartReturnsUploadPage").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const FlipkartReturnsListPage = React.lazy(() =>
+  import("../pages/flipkartReturns/FlipkartReturnsListPage").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const FlipkartReturnsAnalyticsPage = React.lazy(() =>
+  import("../pages/flipkartReturns/FlipkartReturnsAnalyticsPage").then((module) => ({
+    default: module.default,
+  }))
+);
 
 interface ProtectedRoutesProps {
   toggleTheme: () => void;
@@ -131,6 +148,10 @@ export const ProtectedRoutes: React.FC<ProtectedRoutesProps> = ({
       <Route path="/uncategorized-products/" element={<UncategorizedProductsPage />} />
       <Route path="/storage-management/" element={<StorageManagementPage />} />
       <Route path="/inventory/*" element={<InventoryPage />} />
+      <Route path="/flipkart-returns/upload" element={<FlipkartReturnsUploadPage />} />
+      <Route path="/flipkart-returns/list" element={<FlipkartReturnsListPage />} />
+      <Route path="/flipkart-returns/analytics" element={<FlipkartReturnsAnalyticsPage />} />
+      <Route path="/flipkart-returns" element={<FlipkartReturnsListPage />} />
       <Route path="/health/" element={<HealthPage />} />
       <Route path="/monitoring/" element={<MonitoringDashboard />} />
       <Route path="/deployment-status/" element={<DeploymentStatusPage />} />

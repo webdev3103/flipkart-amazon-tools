@@ -25,12 +25,14 @@ import { fetchProducts } from '../../store/slices/productsSlice';
 import { selectIsAuthenticated } from '../../store/slices/authSlice';
 import { fetchTransactions } from '../../store/slices/transactionsSlice';
 import { fetchCategories } from '../../store/slices/categoriesSlice';
+import { fetchReturns } from '../../store/slices/flipkartReturnsSlice';
 import { useIsMobile } from '../../utils/mobile';
 import ProfitSummaryWidget from './components/ProfitSummaryWidget';
 import RecentPDFUploadsWidget from './components/RecentPDFUploadsWidget';
 import InventoryAlertsSummaryWidget from './components/InventoryAlertsSummaryWidget';
 import TopCategoriesWidget from './components/TopCategoriesWidget';
 import ExpenseBreakdownWidget from './components/ExpenseBreakdownWidget';
+import ReturnsWidget from './components/ReturnsWidget';
 
 // Lazy load mobile component
 const MobileDashboardPage = lazy(() =>
@@ -45,6 +47,7 @@ const DesktopDashboardPage = () => {
     const { dailyOrders } = useAppSelector(state => state.orderHistory);
     const { items: transactions, loading: transactionsLoading } = useAppSelector(state => state.transactions);
     const { items: categories, loading: categoriesLoading } = useAppSelector(state => state.categories);
+    const { returns, loading: returnsLoading } = useAppSelector(state => state.flipkartReturns);
     const isAuthenticated = useAppSelector(selectIsAuthenticated);
 
     useEffect(() => {
@@ -55,6 +58,7 @@ const DesktopDashboardPage = () => {
             dispatch(fetchOrderHistory());
             dispatch(fetchTransactions());
             dispatch(fetchCategories());
+            dispatch(fetchReturns());
         }
     }, [dispatch, isAuthenticated]);
 
@@ -218,7 +222,7 @@ const DesktopDashboardPage = () => {
             </Grid>
 
             {/* Row 3: Top Categories + Expense Breakdown */}
-            <Grid container spacing={3}>
+            <Grid container spacing={3} sx={{ mb: 3 }}>
                 <Grid item xs={12} md={6}>
                     <TopCategoriesWidget
                         transactions={transactions}
@@ -233,6 +237,16 @@ const DesktopDashboardPage = () => {
                     <ExpenseBreakdownWidget
                         transactions={transactions}
                         loading={loading}
+                    />
+                </Grid>
+            </Grid>
+
+            {/* Row 4: Returns Widget */}
+            <Grid container spacing={3}>
+                <Grid item xs={12} md={6}>
+                    <ReturnsWidget
+                        returns={returns}
+                        loading={returnsLoading}
                     />
                 </Grid>
             </Grid>

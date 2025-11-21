@@ -206,15 +206,15 @@ service cloud.firestore {
     match /order-barcodes/{barcodeId} {
       // Read access: authenticated users can read barcode data for lookup and scanning
       allow read: if isAuthenticated() || isEmulatorSeeding();
-      
+
       // Create access: authenticated verified users can create barcodes during PDF processing
-      allow create: if (isAuthenticated() && 
+      allow create: if (isAuthenticated() &&
         request.auth.token.email_verified == true &&
         isValidOrderBarcode(request.resource.data) &&
         request.resource.data.barcodeId == barcodeId) || isEmulatorSeeding();
-      
+
       // Update access: only allow completion status updates by verified users
-      allow update: if (isAuthenticated() && 
+      allow update: if (isAuthenticated() &&
         request.auth.token.email_verified == true &&
         isValidOrderBarcode(request.resource.data) &&
         // Only allow updates that change completion status or add completion metadata
@@ -224,9 +224,23 @@ service cloud.firestore {
         // Validate completion data
         request.resource.data.completedBy == request.auth.uid &&
         request.resource.data.completedAt is string) || isEmulatorSeeding();
-      
+
       // Delete access: only admins can delete barcode records for data cleanup
       allow delete: if isAdmin() || isEmulatorSeeding();
+    }
+
+    match /flipkartReturns/{returnId} {
+      // Read access: authenticated users can view returns data
+      allow read: if isAuthenticated() || isEmulatorSeeding();
+
+      // Create access: authenticated users can upload returns from Excel files
+      allow create: if isAuthenticated() || isEmulatorSeeding();
+
+      // Update access: authenticated users can update return status and QC information
+      allow update: if isAuthenticated() || isEmulatorSeeding();
+
+      // Delete access: authenticated users can delete returns
+      allow delete: if isAuthenticated() || isEmulatorSeeding();
     }
   }
 }
