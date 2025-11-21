@@ -167,7 +167,7 @@ const DesktopTodaysOrderPage: React.FC = () => {
 
   return (
     <Container
-      maxWidth="xl"
+      maxWidth={false}
       sx={{ py: { xs: 1, sm: 2, md: 3 }, px: { xs: 1, sm: 2 } }}
     >
       <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 4, borderRadius: 2 }}>

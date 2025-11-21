@@ -703,7 +703,7 @@ export const StorageManagementPage: React.FC = () => {
 
   // Desktop version
   return (
-    <Container maxWidth="lg" sx={{ py: 3 }}>
+    <Container maxWidth={false} sx={{ py: 3 }}>
       {/* Header */}
       <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box>

@@ -134,10 +134,12 @@ describe('MergedCategoryTable', () => {
       expect(screen.getByText('Electronics')).toBeInTheDocument();
     }) as any;
     
-    // Click on Electronics row
+    // Click on expand button for Electronics row
     const electronicsRow = screen.getByText('Electronics').closest('tr');
     if (electronicsRow) {
-      fireEvent.click(electronicsRow);
+      // Find the expand button within the row
+      const expandButton = screen.getAllByLabelText('expand row')[0];
+      fireEvent.click(expandButton);
     }
 
     // Check if products list appears
@@ -163,10 +165,11 @@ describe('MergedCategoryTable', () => {
       expect(screen.getByText('Electronics')).toBeInTheDocument();
     }) as any;
     
-    // Click on Electronics row to show products
+    // Click on expand button for Electronics row
     const electronicsRow = screen.getByText('Electronics').closest('tr');
     if (electronicsRow) {
-      fireEvent.click(electronicsRow);
+      const expandButton = screen.getAllByLabelText('expand row')[0];
+      fireEvent.click(expandButton);
     }
 
     // Verify products are shown
@@ -176,7 +179,8 @@ describe('MergedCategoryTable', () => {
     
     // Click again to hide products
     if (electronicsRow) {
-      fireEvent.click(electronicsRow);
+      const expandButton = screen.getAllByLabelText('expand row')[0];
+      fireEvent.click(expandButton);
     }
 
     // Verify products are hidden
@@ -220,10 +224,13 @@ describe('MergedCategoryTable', () => {
       expect(screen.getByText('Clothing')).toBeInTheDocument();
     }) as any;
     
-    // Click on Clothing row
-    const clothingRow = screen.getByText('Clothing').closest('tr');
-    if (clothingRow) {
-      fireEvent.click(clothingRow);
+    // Click on expand button for Clothing row
+    // Note: Clothing is the second row in mock data, but we should find it dynamically or just grab the second button
+    // Since we are sorting by total orders, Electronics (150) comes first, Clothing (100) second.
+    const expandButtons = screen.getAllByLabelText('expand row');
+    // We want the second one (index 1) which corresponds to Clothing
+    if (expandButtons[1]) {
+      fireEvent.click(expandButtons[1]);
     }
 
     // Check if clothing products appear
