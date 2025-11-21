@@ -1,5 +1,25 @@
 # Changelog
 
+## 10.3.1
+
+### Patch Changes
+
+- [#95](https://github.com/webdev3103/flipkart-amazon-tools/pull/95) [`cf90732`](https://github.com/webdev3103/flipkart-amazon-tools/commit/cf90732ff3ab5eb7fd1c3467f16faa60f9e911a2) Thanks [@webdev3103](https://github.com/webdev3103)! - Implement full-width layouts across all pages by setting Container maxWidth to false
+
+  Updated 9 pages to use full-width containers for better space utilization:
+
+  - Category Groups page
+  - Categories page
+  - Storage Management page
+  - Products page
+  - Uncategorized Products page
+  - Transaction Analytics page
+  - Home (PDF Merger) page
+  - Today's Orders page
+  - Order Analytics page
+
+  This change provides a more spacious and modern layout across the application while maintaining mobile responsiveness.
+
 ## 10.3.0
 
 ### Minor Changes
