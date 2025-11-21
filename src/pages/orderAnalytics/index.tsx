@@ -149,7 +149,7 @@ const OrderAnalytics: React.FC = () => {
 
   const content = (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Container maxWidth="xl" sx={{ mt: isMobile ? 2 : 4, mb: isMobile ? 2 : 4 }}>
+      <Container maxWidth={false} sx={{ mt: isMobile ? 2 : 4, mb: isMobile ? 2 : 4 }}>
         <Box
           display="flex"
           justifyContent="space-between"

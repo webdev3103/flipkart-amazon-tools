@@ -382,7 +382,7 @@ const DesktopHomePage: React.FC = () => {
   };
 
   return (
-    <Container maxWidth="xl" sx={{ py: isMobile ? 2 : 3 }}>
+    <Container maxWidth={false} sx={{ py: isMobile ? 2 : 3 }}>
       <Paper
         sx={{
           p: isMobile ? 2 : 3,

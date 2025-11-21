@@ -210,7 +210,7 @@ const DesktopTransactionAnalytics: React.FC = () => {
   };
 
   return (
-    <Container maxWidth="xl" sx={{ py: 3 }}>
+    <Container maxWidth={false} sx={{ py: 3 }}>
       <Paper sx={{ p: 3, mb: 4, borderRadius: 2 }}>
         <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
           <AnalyticsIcon sx={{ fontSize: 32, mr: 2, color: "primary.main" }} />
