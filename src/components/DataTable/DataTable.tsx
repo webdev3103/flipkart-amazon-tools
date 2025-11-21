@@ -39,6 +39,7 @@ export interface DataTableProps<T> {
   onSelect?: (id: string | number, checked: boolean) => void;
   onSelectAll?: (checked: boolean, visibleIds: (string | number)[]) => void;
   getRowId?: (row: T) => string | number;
+  renderCollapse?: (row: T) => React.ReactNode;
 }
 
 type Comparable = string | number | Date | boolean;
@@ -57,6 +58,7 @@ export function DataTable<T>({
   onSelect,
   onSelectAll,
   getRowId,
+  renderCollapse,
 }: DataTableProps<T>) {
   // Default getRowId function - assumes object has 'id' property when selection is enabled
   const getRowIdFunc = getRowId || ((row: T) => (row as T & { id: string | number }).id);
@@ -80,6 +82,14 @@ export function DataTable<T>({
   const [filters, setFilters] = React.useState<
     Partial<Record<keyof T | string, string>>
   >({});
+  const [expanded, setExpanded] = React.useState<Record<string | number, boolean>>({});
+
+  const handleExpand = (rowId: string | number, isExpanded: boolean) => {
+    setExpanded((prev) => ({
+      ...prev,
+      [rowId]: isExpanded,
+    }));
+  };
 
   // Update rows per page when screen size changes
   React.useEffect(() => {
@@ -281,6 +291,9 @@ export function DataTable<T>({
                 selected={isSelected(row)}
                 onSelect={handleSelect}
                 rowId={enableSelection ? getRowIdFunc(row) : undefined}
+                renderCollapse={renderCollapse}
+                isExpanded={!!expanded[getRowIdFunc(row)]}
+                onExpand={(isExpanded) => handleExpand(getRowIdFunc(row), isExpanded)}
               />
             ))}
           </TableBody>

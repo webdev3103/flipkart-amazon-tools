@@ -2,25 +2,17 @@ import React, { useMemo, useEffect, useState, useCallback } from 'react';
 import {
   Box,
   CircularProgress,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
-  Collapse,
-  IconButton,
+  TextField,
+  InputAdornment,
 } from '@mui/material';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import SearchIcon from '@mui/icons-material/Search';
 import { HistoricalCategoryData } from '../hooks/useHistoricalData';
 import ComparisonIndicator from './ComparisonIndicator';
 import { Category } from '../../../services/category.service';
 import { ProductSummary } from '../../home/services/base.transformer';
 import { FormattedCurrency } from '../../../components/FormattedCurrency';
 import CategoryProductsList from './CategoryProductsList';
+import { DataTable, Column } from '../../../components/DataTable/DataTable';
 
 interface MergedCategoryTableProps {
   historicalData: HistoricalCategoryData[];
@@ -49,9 +41,7 @@ const MergedCategoryTable: React.FC<MergedCategoryTableProps> = ({
 }) => {
   const [loading, setLoading] = useState(true);
   const [mergedData, setMergedData] = useState<MergedCategoryRow[]>([]);
-  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(25);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Memoized category mapping
   const categoryIdToName = useMemo(() => {
@@ -82,29 +72,6 @@ const MergedCategoryTable: React.FC<MergedCategoryTableProps> = ({
   const getProductsForCategory = useCallback((categoryName: string): ProductSummary[] => {
     return productsForCategory[categoryName] || [];
   }, [productsForCategory]);
-
-  // Handle row click to expand/collapse
-  const handleRowClick = useCallback((categoryName: string) => {
-    setExpandedRows(prev => {
-      const newExpandedRows = new Set(prev);
-      if (newExpandedRows.has(categoryName)) {
-        newExpandedRows.delete(categoryName);
-      } else {
-        newExpandedRows.add(categoryName);
-      }
-      return newExpandedRows;
-    });
-  }, []);
-
-  // Handle pagination
-  const handleChangePage = useCallback((event: unknown, newPage: number) => {
-    setPage(newPage);
-  }, []);
-
-  const handleChangeRowsPerPage = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  }, []);
 
   // Memoized financial data calculation
   const financialData = useMemo(() => {
@@ -178,16 +145,63 @@ const MergedCategoryTable: React.FC<MergedCategoryTableProps> = ({
     setLoading(false);
   }, [calculateMergedData]);
 
-  // Sort data by total orders (descending)
-  const sortedData = useMemo(() => {
-    return [...mergedData].sort((a, b) => b.totalOrders - a.totalOrders);
-  }, [mergedData]);
+  const filteredData = useMemo(() => {
+    if (!searchQuery) return mergedData;
+    const lowerQuery = searchQuery.toLowerCase();
+    return mergedData.filter(row => 
+      row.categoryName.toLowerCase().includes(lowerQuery)
+    );
+  }, [mergedData, searchQuery]);
 
-  // Paginate data
-  const paginatedData = useMemo(() => {
-    const startIndex = page * rowsPerPage;
-    return sortedData.slice(startIndex, startIndex + rowsPerPage);
-  }, [sortedData, page, rowsPerPage]);
+  const columns: Column<MergedCategoryRow>[] = [
+    {
+      id: 'categoryName',
+      label: 'Category',
+    },
+    {
+      id: 'totalOrders',
+      label: 'Total Orders',
+      align: 'right',
+      format: (value) => (value as number).toLocaleString(),
+    },
+    {
+      id: 'orderChange',
+      label: 'Today vs Yesterday',
+      align: 'right',
+      format: (value, row) => (
+        <ComparisonIndicator
+          value={row?.orderChange || 0}
+          percentage={row?.orderChangePercent || 0}
+          size="small"
+        />
+      ),
+    },
+    {
+      id: 'totalRevenue',
+      label: 'Revenue',
+      align: 'right',
+      format: (value) => <FormattedCurrency value={value as number} />,
+    },
+    {
+      id: 'totalCost',
+      label: 'Cost',
+      align: 'right',
+      format: (value) => <FormattedCurrency value={value as number} />,
+    },
+    {
+      id: 'profit',
+      label: 'Profit',
+      align: 'right',
+      format: (value, row) => (
+        <Box>
+          <FormattedCurrency value={value as number} />
+          <Box fontSize="0.75rem" color="text.secondary">
+            {row?.profitMargin.toFixed(1)}%
+          </Box>
+        </Box>
+      ),
+    },
+  ];
 
   if (loading) {
     return (
@@ -211,97 +225,39 @@ const MergedCategoryTable: React.FC<MergedCategoryTableProps> = ({
 
   return (
     <Box>
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell padding="checkbox"></TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Category</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }} align="right">Total Orders</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }} align="right">Today vs Yesterday</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }} align="right">Revenue</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }} align="right">Cost</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }} align="right">Profit</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {paginatedData.map((row) => {
-              const isExpanded = expandedRows.has(row.categoryName);
-              const products = getProductsForCategory(row.categoryName);
-              
-              return (
-                <React.Fragment key={row.categoryId}>
-                  <TableRow 
-                    hover 
-                    onClick={() => handleRowClick(row.categoryName)}
-                    sx={{ cursor: 'pointer' }}
-                  >
-                    <TableCell padding="checkbox">
-                      <IconButton
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRowClick(row.categoryName);
-                        }}
-                      >
-                        {isExpanded ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
-                      </IconButton>
-                    </TableCell>
-                    <TableCell>{row.categoryName}</TableCell>
-                    <TableCell align="right">{row.totalOrders.toLocaleString()}</TableCell>
-                    <TableCell align="right">
-                      <ComparisonIndicator
-                        value={row.orderChange}
-                        percentage={row.orderChangePercent}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell align="right">
-                      <FormattedCurrency value={row.totalRevenue} />
-                    </TableCell>
-                    <TableCell align="right">
-                      <FormattedCurrency value={row.totalCost} />
-                    </TableCell>
-                    <TableCell align="right">
-                      <Box>
-                        <FormattedCurrency value={row.profit} />
-                        <Box fontSize="0.75rem" color="text.secondary">
-                          {row.profitMargin.toFixed(1)}%
-                        </Box>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                  
-                  {/* Expandable products row */}
-                  <TableRow>
-                    <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={7}>
-                      <Collapse in={isExpanded} timeout="auto" unmountOnExit>
-                        <Box sx={{ margin: 1 }}>
-                          <CategoryProductsList
-                            categoryName={row.categoryName}
-                            products={products}
-                            categories={categories}
-                            isOpen={true}
-                          />
-                        </Box>
-                      </Collapse>
-                    </TableCell>
-                  </TableRow>
-                </React.Fragment>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </TableContainer>
-      
-      <TablePagination
+      <Box mb={2}>
+        <TextField
+          placeholder="Search categories..."
+          variant="outlined"
+          size="small"
+          fullWidth
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+          }}
+        />
+      </Box>
+      <DataTable
+        columns={columns}
+        data={filteredData}
+        defaultSortColumn="totalOrders"
+        defaultSortDirection="desc"
+        getRowId={(row) => row.categoryId}
         rowsPerPageOptions={[10, 25, 50]}
-        component="div"
-        count={sortedData.length}
-        rowsPerPage={rowsPerPage}
-        page={page}
-        onPageChange={handleChangePage}
-        onRowsPerPageChange={handleChangeRowsPerPage}
+        defaultRowsPerPage={25}
+        renderCollapse={(row) => (
+          <CategoryProductsList
+            categoryName={row.categoryName}
+            products={getProductsForCategory(row.categoryName)}
+            categories={categories}
+            isOpen={true}
+          />
+        )}
       />
     </Box>
   );
