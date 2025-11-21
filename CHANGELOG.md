@@ -1,5 +1,11 @@
 # Changelog
 
+## 10.3.0
+
+### Minor Changes
+
+- [#93](https://github.com/webdev3103/flipkart-amazon-tools/pull/93) [`8ae7af6`](https://github.com/webdev3103/flipkart-amazon-tools/commit/8ae7af65a035b9ad3d5652f326ee26a84722d274) Thanks [@webdev3103](https://github.com/webdev3103)! - Added returns processing for flipkart
+
 ## 10.2.0
 
 ### Minor Changes
