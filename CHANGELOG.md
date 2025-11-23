@@ -1,5 +1,11 @@
 # Changelog
 
+## 10.4.0
+
+### Minor Changes
+
+- [#99](https://github.com/webdev3103/flipkart-amazon-tools/pull/99) [`9fe25a2`](https://github.com/webdev3103/flipkart-amazon-tools/commit/9fe25a2befc54a8c65cab253432517f853a7907c) Thanks [@webdev3103](https://github.com/webdev3103)! - Consolidated order and return metrics into meaningful composite cards on the Order Analytics page.
+
 ## 10.3.2
 
 ### Patch Changes
