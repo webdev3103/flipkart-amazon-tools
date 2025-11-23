@@ -9,12 +9,14 @@ import {
 } from "@mui/material";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
-import { format } from "date-fns";
+import { format, isWithinInterval } from "date-fns";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../../store";
 import { fetchAllOrdersForAnalytics } from "../../store/slices/allOrdersForAnalyticsSlice";
 import { fetchProducts } from "../../store/slices/productsSlice";
 import { fetchCategories } from "../../store/slices/categoriesSlice";
+import { fetchReturns } from "../../store/slices/flipkartReturnsSlice";
+
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import DateRangeFilter from "./components/DateRangeFilter";
@@ -44,6 +46,11 @@ const OrderAnalytics: React.FC = () => {
     loading: categoriesLoading,
     error: categoriesError,
   } = useSelector((state: RootState) => state.categories);
+  const {
+    returns,
+    loading: returnsLoading,
+    error: returnsError,
+  } = useSelector((state: RootState) => state.flipkartReturns);
 
   // State for popovers
   const [filterAnchorEl, setFilterAnchorEl] = useState<null | HTMLElement>(
@@ -65,13 +72,13 @@ const OrderAnalytics: React.FC = () => {
 
   // Memoized loading and error states
   const isLoading = useMemo(() => 
-    allOrdersLoading || productsLoading || categoriesLoading, 
-    [allOrdersLoading, productsLoading, categoriesLoading]
+    allOrdersLoading || productsLoading || categoriesLoading || returnsLoading, 
+    [allOrdersLoading, productsLoading, categoriesLoading, returnsLoading]
   );
   
   const error = useMemo(() => 
-    allOrdersError || productsError || categoriesError, 
-    [allOrdersError, productsError, categoriesError]
+    allOrdersError || productsError || categoriesError || returnsError, 
+    [allOrdersError, productsError, categoriesError, returnsError]
   );
 
   // Fetch data on mount only
@@ -87,6 +94,9 @@ const OrderAnalytics: React.FC = () => {
       }
       if (categories.length === 0 && !categoriesLoading && !categoriesError) {
         promises.push(dispatch(fetchCategories()));
+      }
+      if (returns.length === 0 && !returnsLoading && !returnsError) {
+        promises.push(dispatch(fetchReturns()));
       }
 
       if (promises.length > 0) {
@@ -128,6 +138,62 @@ const OrderAnalytics: React.FC = () => {
     [filterState.dateRange.startDate, filterState.dateRange.endDate]
   );
 
+  // Filter returns based on the same criteria
+  const filteredReturns = useMemo(() => {
+    return returns.filter((returnItem) => {
+      // Date filtering
+      const returnDate = returnItem.dates.returnDeliveredDate
+        || returnItem.dates.returnApprovedDate
+        || returnItem.dates.returnInitiatedDate;
+      
+      const returnDateObj = new Date(returnDate);
+      if (isNaN(returnDateObj.getTime())) return false;
+
+      const isWithinDateRange = isWithinInterval(returnDateObj, {
+        start: filterState.dateRange.startDate,
+        end: filterState.dateRange.endDate
+      });
+
+      if (!isWithinDateRange) return false;
+
+      // Category filtering
+      // Note: Returns might not have categoryId directly populated or it might be different
+      // We need to check if returnItem has categoryId or we need to look it up via SKU/Product
+      // Assuming returnItem has categoryId or we can match via SKU
+      
+      // SKU filtering
+      if (filterState.selectedSku && returnItem.sku !== filterState.selectedSku) {
+        return false;
+      }
+
+      // Product filtering
+      if (filterState.selectedProduct && returnItem.productTitle !== filterState.selectedProduct) {
+        return false;
+      }
+
+      // Category filtering (if selected)
+      if (filterState.selectedCategory) {
+        // If return has categoryId, check it
+        if (returnItem.categoryId) {
+           const category = categories.find(c => c.id === returnItem.categoryId);
+           if (category?.name !== filterState.selectedCategory) return false;
+        } else {
+          // Try to find product by SKU to get category
+          const product = products.find(p => p.sku === returnItem.sku);
+          if (product?.categoryId) {
+             const category = categories.find(c => c.id === product.categoryId);
+             if (category?.name !== filterState.selectedCategory) return false;
+          } else {
+             // If we can't determine category and category filter is active, exclude it?
+             // Or include if 'Uncategorized'?
+             if (filterState.selectedCategory !== 'Uncategorized') return false;
+          }
+        }
+      }
+
+      return true;
+    });
+  }, [returns, filterState, categories, products]);
   if (error) {
     const errorContent = (
       <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
@@ -214,6 +280,7 @@ const OrderAnalytics: React.FC = () => {
         {/* Order Metrics Section - Moved to top */}
         <OrderMetrics
           orders={filteredOrders}
+          returns={filteredReturns}
           products={products}
           categories={categories}
         />
