@@ -4,6 +4,7 @@ import {
   CircularProgress,
   TextField,
   InputAdornment,
+  Typography,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import { HistoricalCategoryData } from '../hooks/useHistoricalData';
@@ -153,21 +154,65 @@ const MergedCategoryTable: React.FC<MergedCategoryTableProps> = ({
     );
   }, [mergedData, searchQuery]);
 
+  // Calculate totals for percentages
+  const totals = useMemo(() => {
+    return mergedData.reduce((acc, row) => ({
+      orders: acc.orders + row.totalOrders,
+      revenue: acc.revenue + row.totalRevenue
+    }), { orders: 0, revenue: 0 });
+  }, [mergedData]);
+
   const columns: Column<MergedCategoryRow>[] = [
     {
       id: 'categoryName',
       label: 'Category',
+      minWidth: 150,
     },
     {
       id: 'totalOrders',
       label: 'Total Orders',
-      align: 'right',
-      format: (value) => (value as number).toLocaleString(),
+      align: 'left',
+      minWidth: 150,
+      format: (value, row) => {
+        const percentage = totals.orders > 0 ? ((value as number) / totals.orders) * 100 : 0;
+        return (
+          <Box sx={{ width: '100%' }}>
+            <Box display="flex" justifyContent="space-between" mb={0.5}>
+              <Typography variant="body2">{(value as number).toLocaleString()}</Typography>
+              <Typography variant="caption" color="text.secondary">{percentage.toFixed(1)}%</Typography>
+            </Box>
+            <Box 
+              sx={{ 
+                width: '100%', 
+                height: 6, 
+                bgcolor: 'action.hover', 
+                borderRadius: 1,
+                overflow: 'hidden'
+              }}
+            >
+              <Box 
+                sx={{ 
+                  width: `${percentage}%`, 
+                  height: '100%', 
+                  bgcolor: 'primary.main',
+                  borderRadius: 1
+                }} 
+              />
+            </Box>
+            <ComparisonIndicator
+          value={row?.orderChange || 0}
+          percentage={row?.orderChangePercent || 0}
+          size="small"
+        />
+          </Box>
+        );
+      },
     },
     {
       id: 'orderChange',
-      label: 'Today vs Yesterday',
+      label: 'Vs Yesterday',
       align: 'right',
+      minWidth: 150,
       format: (value, row) => (
         <ComparisonIndicator
           value={row?.orderChange || 0}
@@ -180,18 +225,31 @@ const MergedCategoryTable: React.FC<MergedCategoryTableProps> = ({
       id: 'totalRevenue',
       label: 'Revenue',
       align: 'right',
-      format: (value) => <FormattedCurrency value={value as number} />,
+      minWidth: 150,
+      format: (value, _row) => {
+        const percentage = totals.revenue > 0 ? ((value as number) / totals.revenue) * 100 : 0;
+        return (
+          <Box>
+            <FormattedCurrency value={value as number} />
+            <Typography variant="caption" display="block" color="text.secondary">
+              {percentage.toFixed(1)}% share
+            </Typography>
+          </Box>
+        );
+      },
     },
     {
       id: 'totalCost',
       label: 'Cost',
       align: 'right',
-      format: (value) => <FormattedCurrency value={value as number} />,
+      minWidth: 150,
+      format: (value) => <FormattedCurrency value={value as number} />, 
     },
     {
       id: 'profit',
       label: 'Profit',
       align: 'right',
+      minWidth: 150,
       format: (value, row) => (
         <Box>
           <FormattedCurrency value={value as number} />

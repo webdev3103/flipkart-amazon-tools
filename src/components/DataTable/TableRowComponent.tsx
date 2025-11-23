@@ -82,7 +82,11 @@ function TableRowComponentBase<T>(props: TableRowComponentProps<T>) {
         {columns.map((column) => {
           const value = row[column.id as keyof T];
           return (
-            <TableCell key={String(column.id)} align={column.align}>
+            <TableCell 
+              key={String(column.id)} 
+              align={column.align}
+              sx={{ minWidth: column.minWidth, width: 'auto' }}
+            >
               {column.format 
                 ? column.format(value, row)
                 : String(value ?? '')}
