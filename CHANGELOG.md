@@ -1,5 +1,11 @@
 # Changelog
 
+## 10.3.2
+
+### Patch Changes
+
+- [#97](https://github.com/webdev3103/flipkart-amazon-tools/pull/97) [`81c2afd`](https://github.com/webdev3103/flipkart-amazon-tools/commit/81c2afd6221354eca148425a991950edf783c34b) Thanks [@webdev3103](https://github.com/webdev3103)! - Temporarily disabled mobile builds in release pipeline and updated release workflow to create release after successful deployment.
+
 ## 10.3.1
 
 ### Patch Changes
