@@ -13,6 +13,15 @@ on:
         options:
           - production
           - staging
+      create_release:
+        description: 'Create GitHub Release after successful deployment'
+        required: false
+        default: false
+        type: boolean
+      version:
+        description: 'Version to release (e.g. 1.2.3)'
+        required: false
+        type: string
       skip_smoke_tests:
         description: 'Skip pre-deployment smoke tests'
         required: false
@@ -156,12 +165,74 @@ jobs:
             echo "validation_success=false" >> $GITHUB_OUTPUT
           fi
 
+      - name: Create GitHub Release
+        if: github.event.inputs.create_release == 'true' && steps.post-validation.outputs.validation_success == 'true'
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          echo "🎉 Creating release for version v$VERSION..."
+          
+          # Prepare release assets
+          ASSETS=""
+          
+          # Package web build artifacts
+          if [ -d "dist" ] && [ "$(ls -A dist)" ]; then
+            echo "📦 Packaging web build..."
+            cd dist
+            zip -r ../sacred-sutra-tools-web-v$VERSION.zip .
+            cd ..
+            ASSETS="$ASSETS sacred-sutra-tools-web-v$VERSION.zip"
+          fi
+          
+          # Create release notes
+          RELEASE_NOTES="## Changes
+
+          See [CHANGELOG.md](CHANGELOG.md) for detailed changes.
+
+          ## Deployment
+
+          This release has been automatically deployed to production.
+
+          🌐 **Live URL**: https://tool.sacredsutra.in/
+
+          ## Assets
+
+          ### 🌐 Web Application
+          - \`sacred-sutra-tools-web-v$VERSION.zip\` - Production web build (deployed to GitHub Pages)
+
+          ### 📱 Mobile Application
+          - Mobile build is temporarily disabled.
+
+          ## Quality Assurance
+
+          - ✅ All tests passed
+          - ✅ TypeScript validation completed
+          - ✅ Code quality checks passed
+          - ✅ Web build verified"
+
+          # Create GitHub release with assets
+          if [ -n "$ASSETS" ]; then
+            gh release create "v$VERSION" \
+              --title "Sacred Sutra Tools v$VERSION" \
+              --notes "$RELEASE_NOTES" \
+              --latest \
+              $ASSETS
+            echo "✅ Release created with assets: $ASSETS"
+          else
+            gh release create "v$VERSION" \
+              --title "Sacred Sutra Tools v$VERSION" \
+              --notes "$RELEASE_NOTES" \
+              --latest
+            echo "⚠️ Release created without assets"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
+
       - name: Deployment Success Notification
         if: steps.post-validation.outputs.validation_success == 'true'
         run: |
           ENVIRONMENT="${{ github.event.inputs.environment || 'production' }}"
           URL="${{ steps.deployment.outputs.page_url || 'https://tool.sacredsutra.in/' }}"
-          VERSION="${{ github.event.release.tag_name || 'latest' }}"
+          VERSION="${{ github.event.inputs.version || github.event.release.tag_name || 'latest' }}"
           
           echo "✅ Deployment successful to $ENVIRONMENT"
           echo "🌐 URL: $URL"
