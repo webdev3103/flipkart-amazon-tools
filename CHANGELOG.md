@@ -1,5 +1,11 @@
 # Changelog
 
+## 10.4.1
+
+### Patch Changes
+
+- [#102](https://github.com/webdev3103/flipkart-amazon-tools/pull/102) [`1815302`](https://github.com/webdev3103/flipkart-amazon-tools/commit/18153020030ac99e8a344ce1941d1aca5988f533) Thanks [@webdev3103](https://github.com/webdev3103)! - Fixed order analytics design
+
 ## 10.4.0
 
 ### Minor Changes
