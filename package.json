@@ -75,7 +75,7 @@
     "@capacitor-firebase/app": "^7.3.1",
     "@capacitor-firebase/authentication": "^7.3.1",
     "@capacitor-firebase/firestore": "^7.3.1",
-    "@capacitor-firebase/storage": "^7.3.1",
+    "@capacitor-firebase/storage": "^7.4.0",
     "@capacitor-mlkit/barcode-scanning": "^7.3.0",
     "@capacitor/android": "^7.4.3",
     "@capacitor/app": "^7.1.0",
