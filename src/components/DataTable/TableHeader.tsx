@@ -35,11 +35,7 @@ function TableHeaderComponent<T>(props: TableHeaderProps<T>) {
           </TableCell>
         )}
         {columns.map((column) => (
-          <TableCell
-            key={String(column.id)}
-            align={column.align}
-            sortDirection={orderBy === column.id ? order : false}
-          >
+          <TableCell key={String(column.id)} align={column.align} sortDirection={orderBy === column.id ? order : false} sx={{ minWidth: column.minWidth, width: 'auto' }}>
             <TableSortLabel
               active={orderBy === column.id}
               direction={orderBy === column.id ? order : 'asc'}

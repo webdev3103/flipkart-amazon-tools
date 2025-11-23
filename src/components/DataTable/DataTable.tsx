@@ -23,6 +23,7 @@ export interface Column<T> {
   format?: (value: unknown, row: T | undefined) => React.ReactNode;
   filterValue?: (row: T) => string; // Custom function to get the value for filtering
   priorityOnMobile?: boolean; // New property to indicate if column should be displayed prominently on mobile
+  minWidth?: number | string;
 }
 
 export interface DataTableProps<T> {
@@ -266,7 +267,7 @@ export function DataTable<T>({
   return (
     <Box sx={{ width: "100%" }}>
       <TableContainer component={Paper}>
-        <Table id={id}>
+        <Table id={id} sx={{ tableLayout: 'fixed' }}>
           <TableHeader
             columns={columns}
             orderBy={orderBy as keyof T}
