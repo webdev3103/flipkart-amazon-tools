@@ -85,9 +85,15 @@ describe('ReturnsInventoryIntegrationService', () => {
       ];
 
       mockProductService.getProducts = jest.fn().mockResolvedValue(mockProducts);
-      mockInventoryService.adjustInventoryManually = jest.fn().mockResolvedValue({
-        newInventoryLevel: 10,
-        movementId: 'MOV001',
+      mockInventoryService.adjustInventoryBatch = jest.fn().mockResolvedValue({
+        success: true,
+        results: [{
+          categoryGroupId: 'CG001',
+          newInventoryLevel: 10,
+          movementId: 'MOV001',
+          adjustmentsProcessed: 1
+        }],
+        errors: []
       });
 
       // Act
@@ -106,14 +112,14 @@ describe('ReturnsInventoryIntegrationService', () => {
       expect(result.skipped).toHaveLength(0);
       expect(result.errors).toHaveLength(0);
 
-      expect(mockInventoryService.adjustInventoryManually).toHaveBeenCalledWith({
+      expect(mockInventoryService.adjustInventoryBatch).toHaveBeenCalledWith([{
         categoryGroupId: 'CG001',
         adjustmentType: 'increase',
         quantity: 1,
         reason: 'stock_returned',
         notes: expect.stringContaining('Automatic restoration from return RET001'),
         adjustedBy: 'user123',
-      });
+      }]);
     });
 
     it('should skip non-resaleable returns', async () => {
@@ -132,7 +138,7 @@ describe('ReturnsInventoryIntegrationService', () => {
       expect(result.restored).toHaveLength(0);
       expect(result.skipped).toHaveLength(0);
       expect(result.errors).toHaveLength(0);
-      expect(mockInventoryService.adjustInventoryManually).not.toHaveBeenCalled();
+      expect(mockInventoryService.adjustInventoryBatch).not.toHaveBeenCalled();
     });
 
     it('should skip returns with products not in catalog', async () => {
@@ -196,9 +202,15 @@ describe('ReturnsInventoryIntegrationService', () => {
       ];
 
       mockProductService.getProducts = jest.fn().mockResolvedValue(mockProducts);
-      mockInventoryService.adjustInventoryManually = jest.fn().mockRejectedValue(
-        new Error('Inventory adjustment failed')
-      );
+      mockInventoryService.adjustInventoryBatch = jest.fn().mockResolvedValue({
+        success: false,
+        results: [],
+        errors: [{
+          categoryGroupId: 'CG001',
+          error: 'Inventory adjustment failed',
+          adjustmentIndex: 0
+        }]
+      });
 
       // Act
       const result = await service.restoreInventoryFromReturns(returns, 'user123');
@@ -233,9 +245,15 @@ describe('ReturnsInventoryIntegrationService', () => {
       ];
 
       mockProductService.getProducts = jest.fn().mockResolvedValue(mockProducts);
-      mockInventoryService.adjustInventoryManually = jest.fn().mockResolvedValue({
-        newInventoryLevel: 10,
-        movementId: 'MOV001',
+      mockInventoryService.adjustInventoryBatch = jest.fn().mockResolvedValue({
+        success: true,
+        results: [{
+          categoryGroupId: 'CG001',
+          newInventoryLevel: 10,
+          movementId: 'MOV001',
+          adjustmentsProcessed: 1
+        }],
+        errors: []
       });
 
       // Act
@@ -246,7 +264,7 @@ describe('ReturnsInventoryIntegrationService', () => {
       expect(result.restored).toHaveLength(1);
       expect(result.skipped).toHaveLength(1);
       expect(result.errors).toHaveLength(0);
-      expect(mockInventoryService.adjustInventoryManually).toHaveBeenCalledTimes(1);
+      expect(mockInventoryService.adjustInventoryBatch).toHaveBeenCalledTimes(1);
     });
 
     it('should handle empty returns array', async () => {
@@ -276,9 +294,15 @@ describe('ReturnsInventoryIntegrationService', () => {
       ];
 
       mockProductService.getProducts = jest.fn().mockResolvedValue(mockProducts);
-      mockInventoryService.adjustInventoryManually = jest.fn().mockResolvedValue({
-        newInventoryLevel: 10,
-        movementId: 'MOV001',
+      mockInventoryService.adjustInventoryBatch = jest.fn().mockResolvedValue({
+        success: true,
+        results: [{
+          categoryGroupId: 'CG001',
+          newInventoryLevel: 10,
+          movementId: 'MOV001',
+          adjustmentsProcessed: 1
+        }],
+        errors: []
       });
 
       // Act
@@ -313,9 +337,15 @@ describe('ReturnsInventoryIntegrationService', () => {
       ];
 
       mockProductService.getProducts = jest.fn().mockResolvedValue(mockProducts);
-      mockInventoryService.adjustInventoryManually = jest.fn().mockResolvedValue({
-        newInventoryLevel: 10,
-        movementId: 'MOV001',
+      mockInventoryService.adjustInventoryBatch = jest.fn().mockResolvedValue({
+        success: true,
+        results: [{
+          categoryGroupId: 'CG001',
+          newInventoryLevel: 10,
+          movementId: 'MOV001',
+          adjustmentsProcessed: 1
+        }],
+        errors: []
       });
 
       // Act
@@ -334,14 +364,14 @@ describe('ReturnsInventoryIntegrationService', () => {
       expect(result.skipped).toHaveLength(0);
       expect(result.errors).toHaveLength(0);
 
-      expect(mockInventoryService.adjustInventoryManually).toHaveBeenCalledWith({
+      expect(mockInventoryService.adjustInventoryBatch).toHaveBeenCalledWith([{
         categoryGroupId: 'CG001',
         adjustmentType: 'increase',
         quantity: 1,
         reason: 'stock_returned',
         notes: expect.stringContaining('Automatic restoration from delivered return RET001'),
         adjustedBy: 'user123',
-      });
+      }]);
     });
 
     it('should skip returns without returnDeliveredDate', async () => {
@@ -366,7 +396,7 @@ describe('ReturnsInventoryIntegrationService', () => {
       expect(result.restored).toHaveLength(0);
       expect(result.skipped).toHaveLength(0);
       expect(result.errors).toHaveLength(0);
-      expect(mockInventoryService.adjustInventoryManually).not.toHaveBeenCalled();
+      expect(mockInventoryService.adjustInventoryBatch).not.toHaveBeenCalled();
     });
 
     it('should restore inventory regardless of resaleable status when delivered', async () => {
@@ -393,9 +423,15 @@ describe('ReturnsInventoryIntegrationService', () => {
       ];
 
       mockProductService.getProducts = jest.fn().mockResolvedValue(mockProducts);
-      mockInventoryService.adjustInventoryManually = jest.fn().mockResolvedValue({
-        newInventoryLevel: 10,
-        movementId: 'MOV001',
+      mockInventoryService.adjustInventoryBatch = jest.fn().mockResolvedValue({
+        success: true,
+        results: [{
+          categoryGroupId: 'CG001',
+          newInventoryLevel: 10,
+          movementId: 'MOV001',
+          adjustmentsProcessed: 1
+        }],
+        errors: []
       });
 
       // Act
@@ -404,7 +440,7 @@ describe('ReturnsInventoryIntegrationService', () => {
       // Assert
       expect(result.success).toBe(true);
       expect(result.restored).toHaveLength(1);
-      expect(mockInventoryService.adjustInventoryManually).toHaveBeenCalledTimes(1);
+      expect(mockInventoryService.adjustInventoryBatch).toHaveBeenCalledTimes(1);
     });
 
     it('should skip delivered returns with products not in catalog', async () => {
@@ -496,9 +532,15 @@ describe('ReturnsInventoryIntegrationService', () => {
       ];
 
       mockProductService.getProducts = jest.fn().mockResolvedValue(mockProducts);
-      mockInventoryService.adjustInventoryManually = jest.fn().mockRejectedValue(
-        new Error('Inventory adjustment failed')
-      );
+      mockInventoryService.adjustInventoryBatch = jest.fn().mockResolvedValue({
+        success: false,
+        results: [],
+        errors: [{
+          categoryGroupId: 'CG001',
+          error: 'Inventory adjustment failed',
+          adjustmentIndex: 0
+        }]
+      });
 
       // Act
       const result = await service.restoreInventoryFromDeliveredReturns(returns, 'user123');
@@ -558,9 +600,15 @@ describe('ReturnsInventoryIntegrationService', () => {
       ];
 
       mockProductService.getProducts = jest.fn().mockResolvedValue(mockProducts);
-      mockInventoryService.adjustInventoryManually = jest.fn().mockResolvedValue({
-        newInventoryLevel: 10,
-        movementId: 'MOV001',
+      mockInventoryService.adjustInventoryBatch = jest.fn().mockResolvedValue({
+        success: true,
+        results: [{
+          categoryGroupId: 'CG001',
+          newInventoryLevel: 10,
+          movementId: 'MOV001',
+          adjustmentsProcessed: 1
+        }],
+        errors: []
       });
 
       // Act
@@ -571,7 +619,7 @@ describe('ReturnsInventoryIntegrationService', () => {
       expect(result.restored).toHaveLength(1);
       expect(result.skipped).toHaveLength(1);
       expect(result.errors).toHaveLength(0);
-      expect(mockInventoryService.adjustInventoryManually).toHaveBeenCalledTimes(1);
+      expect(mockInventoryService.adjustInventoryBatch).toHaveBeenCalledTimes(1);
     });
 
     it('should handle empty returns array', async () => {
@@ -609,9 +657,15 @@ describe('ReturnsInventoryIntegrationService', () => {
       ];
 
       mockProductService.getProducts = jest.fn().mockResolvedValue(mockProducts);
-      mockInventoryService.adjustInventoryManually = jest.fn().mockResolvedValue({
-        newInventoryLevel: 15,
-        movementId: 'MOV001',
+      mockInventoryService.adjustInventoryBatch = jest.fn().mockResolvedValue({
+        success: true,
+        results: [{
+          categoryGroupId: 'CG001',
+          newInventoryLevel: 15,
+          movementId: 'MOV001',
+          adjustmentsProcessed: 1
+        }],
+        errors: []
       });
 
       // Act
@@ -620,10 +674,10 @@ describe('ReturnsInventoryIntegrationService', () => {
       // Assert
       expect(result.success).toBe(true);
       expect(result.restored[0].quantity).toBe(5);
-      expect(mockInventoryService.adjustInventoryManually).toHaveBeenCalledWith(
-        expect.objectContaining({
+      expect(mockInventoryService.adjustInventoryBatch).toHaveBeenCalledWith(
+        expect.arrayContaining([expect.objectContaining({
           quantity: 5,
-        })
+        })])
       );
     });
   });
