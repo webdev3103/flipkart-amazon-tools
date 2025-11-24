@@ -21,6 +21,7 @@ import { FlipkartReturn } from '../../types/flipkartReturns.type';
 import { ProductService } from '../product.service';
 import { CategoryService } from '../category.service';
 import { InventoryService } from '../inventory.service';
+import { ManualInventoryAdjustment } from '../../types/inventory';
 
 export interface InventoryRestorationResult {
   success: boolean;
@@ -95,63 +96,98 @@ export class ReturnsInventoryIntegrationService {
       categories.map(c => [c.id, c])
     );
 
-    // Process each resaleable return
+    // Collect all valid adjustments for batch processing
+    const batchAdjustments: Array<{
+      adjustment: ManualInventoryAdjustment;
+      returnItem: FlipkartReturn;
+    }> = [];
+
+    // Validate and prepare adjustments
     for (const returnItem of resaleableReturns) {
-      try {
-        // Validate SKU mapping
-        const product = productsBySku.get(returnItem.sku);
+      // Validate SKU mapping
+      const product = productsBySku.get(returnItem.sku);
 
-        if (!product) {
-          result.skipped.push({
-            returnId: returnItem.returnId,
-            sku: returnItem.sku,
-            reason: 'Product not found in catalog'
-          });
-          continue;
-        }
+      if (!product) {
+        result.skipped.push({
+          returnId: returnItem.returnId,
+          sku: returnItem.sku,
+          reason: 'Product not found in catalog'
+        });
+        continue;
+      }
 
-        // Resolve categoryGroupId: Use product's direct mapping or fetch from category
-        let categoryGroupId = product.categoryGroupId;
+      // Resolve categoryGroupId: Use product's direct mapping or fetch from category
+      let categoryGroupId = product.categoryGroupId;
 
-        if (!categoryGroupId && product.categoryId) {
-          const category = categoriesById.get(product.categoryId);
-          categoryGroupId = category?.categoryGroupId;
-        }
+      if (!categoryGroupId && product.categoryId) {
+        const category = categoriesById.get(product.categoryId);
+        categoryGroupId = category?.categoryGroupId;
+      }
 
-        if (!categoryGroupId) {
-          result.skipped.push({
-            returnId: returnItem.returnId,
-            sku: returnItem.sku,
-            reason: 'Product has no category group mapping'
-          });
-          continue;
-        }
+      if (!categoryGroupId) {
+        result.skipped.push({
+          returnId: returnItem.returnId,
+          sku: returnItem.sku,
+          reason: 'Product has no category group mapping'
+        });
+        continue;
+      }
 
-        // Use adjustInventoryManually for additions with proper audit trail
-        const adjustmentResult = await this.inventoryService.adjustInventoryManually({
+      // Add to batch adjustments
+      batchAdjustments.push({
+        adjustment: {
           categoryGroupId: categoryGroupId,
           adjustmentType: 'increase',
           quantity: returnItem.quantity,
-          reason: 'stock_returned', // Predefined reason code
+          reason: 'stock_returned',
           notes: `Automatic restoration from return ${returnItem.returnId} - QC Status: ${returnItem.qcStatus || 'Resaleable'}`,
           adjustedBy: userId
-        });
+        },
+        returnItem: returnItem
+      });
+    }
 
-        result.restored.push({
-          returnId: returnItem.returnId,
-          sku: returnItem.sku,
-          categoryGroupId: categoryGroupId,
-          quantity: returnItem.quantity,
-          movementId: adjustmentResult.movementId
-        });
+    // Process all adjustments in a single batch call
+    if (batchAdjustments.length > 0) {
+      const adjustments = batchAdjustments.map(item => item.adjustment);
+      const batchResult = await this.inventoryService.adjustInventoryBatch(adjustments);
 
-      } catch (error) {
-        result.success = false;
-        result.errors.push({
-          returnId: returnItem.returnId,
-          sku: returnItem.sku,
-          error: error instanceof Error ? error.message : 'Unknown error during inventory restoration'
-        });
+      // Map batch results back to restoration result format
+      for (let i = 0; i < batchAdjustments.length; i++) {
+        const { returnItem } = batchAdjustments[i];
+        const categoryGroupId = batchAdjustments[i].adjustment.categoryGroupId;
+
+        // Check if this adjustment had an error
+        const error = batchResult.errors.find(e => e.adjustmentIndex === i);
+        if (error) {
+          result.success = false;
+          result.errors.push({
+            returnId: returnItem.returnId,
+            sku: returnItem.sku,
+            error: error.error
+          });
+          continue;
+        }
+
+        // Find the corresponding result for this category group
+        const groupResult = batchResult.results.find(r => r.categoryGroupId === categoryGroupId);
+        if (groupResult) {
+          result.restored.push({
+            returnId: returnItem.returnId,
+            sku: returnItem.sku,
+            categoryGroupId: categoryGroupId,
+            quantity: returnItem.quantity,
+            movementId: groupResult.movementId
+          });
+        } else {
+          // This shouldn't happen, but handle it gracefully
+          result.success = false;
+          result.errors.push({
+            returnId: returnItem.returnId,
+            sku: returnItem.sku,
+            error: 'Batch result not found for category group'
+          });
+        }
       }
     }
 
@@ -222,63 +258,98 @@ export class ReturnsInventoryIntegrationService {
       categories.map(c => [c.id, c])
     );
 
-    // Process each delivered return
+    // Collect all valid adjustments for batch processing
+    const batchAdjustments: Array<{
+      adjustment: ManualInventoryAdjustment;
+      returnItem: FlipkartReturn;
+    }> = [];
+
+    // Validate and prepare adjustments
     for (const returnItem of deliveredReturns) {
-      try {
-        // Validate SKU mapping
-        const product = productsBySku.get(returnItem.sku);
+      // Validate SKU mapping
+      const product = productsBySku.get(returnItem.sku);
 
-        if (!product) {
-          result.skipped.push({
-            returnId: returnItem.returnId,
-            sku: returnItem.sku,
-            reason: 'Product not found in catalog'
-          });
-          continue;
-        }
+      if (!product) {
+        result.skipped.push({
+          returnId: returnItem.returnId,
+          sku: returnItem.sku,
+          reason: 'Product not found in catalog'
+        });
+        continue;
+      }
 
-        // Resolve categoryGroupId: Use product's direct mapping or fetch from category
-        let categoryGroupId = product.categoryGroupId;
+      // Resolve categoryGroupId: Use product's direct mapping or fetch from category
+      let categoryGroupId = product.categoryGroupId;
 
-        if (!categoryGroupId && product.categoryId) {
-          const category = categoriesById.get(product.categoryId);
-          categoryGroupId = category?.categoryGroupId;
-        }
+      if (!categoryGroupId && product.categoryId) {
+        const category = categoriesById.get(product.categoryId);
+        categoryGroupId = category?.categoryGroupId;
+      }
 
-        if (!categoryGroupId) {
-          result.skipped.push({
-            returnId: returnItem.returnId,
-            sku: returnItem.sku,
-            reason: 'Product has no category group mapping'
-          });
-          continue;
-        }
+      if (!categoryGroupId) {
+        result.skipped.push({
+          returnId: returnItem.returnId,
+          sku: returnItem.sku,
+          reason: 'Product has no category group mapping'
+        });
+        continue;
+      }
 
-        // Use adjustInventoryManually for additions with proper audit trail
-        const adjustmentResult = await this.inventoryService.adjustInventoryManually({
+      // Add to batch adjustments
+      batchAdjustments.push({
+        adjustment: {
           categoryGroupId: categoryGroupId,
           adjustmentType: 'increase',
           quantity: returnItem.quantity,
-          reason: 'stock_returned', // Predefined reason code
+          reason: 'stock_returned',
           notes: `Automatic restoration from delivered return ${returnItem.returnId} - Delivered: ${returnItem.dates.returnDeliveredDate?.toISOString()}`,
           adjustedBy: userId
-        });
+        },
+        returnItem: returnItem
+      });
+    }
 
-        result.restored.push({
-          returnId: returnItem.returnId,
-          sku: returnItem.sku,
-          categoryGroupId: categoryGroupId,
-          quantity: returnItem.quantity,
-          movementId: adjustmentResult.movementId
-        });
+    // Process all adjustments in a single batch call
+    if (batchAdjustments.length > 0) {
+      const adjustments = batchAdjustments.map(item => item.adjustment);
+      const batchResult = await this.inventoryService.adjustInventoryBatch(adjustments);
 
-      } catch (error) {
-        result.success = false;
-        result.errors.push({
-          returnId: returnItem.returnId,
-          sku: returnItem.sku,
-          error: error instanceof Error ? error.message : 'Unknown error during inventory restoration'
-        });
+      // Map batch results back to restoration result format
+      for (let i = 0; i < batchAdjustments.length; i++) {
+        const { returnItem } = batchAdjustments[i];
+        const categoryGroupId = batchAdjustments[i].adjustment.categoryGroupId;
+
+        // Check if this adjustment had an error
+        const error = batchResult.errors.find(e => e.adjustmentIndex === i);
+        if (error) {
+          result.success = false;
+          result.errors.push({
+            returnId: returnItem.returnId,
+            sku: returnItem.sku,
+            error: error.error
+          });
+          continue;
+        }
+
+        // Find the corresponding result for this category group
+        const groupResult = batchResult.results.find(r => r.categoryGroupId === categoryGroupId);
+        if (groupResult) {
+          result.restored.push({
+            returnId: returnItem.returnId,
+            sku: returnItem.sku,
+            categoryGroupId: categoryGroupId,
+            quantity: returnItem.quantity,
+            movementId: groupResult.movementId
+          });
+        } else {
+          // This shouldn't happen, but handle it gracefully
+          result.success = false;
+          result.errors.push({
+            returnId: returnItem.returnId,
+            sku: returnItem.sku,
+            error: 'Batch result not found for category group'
+          });
+        }
       }
     }
 
