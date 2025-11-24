@@ -1,5 +1,16 @@
 # Changelog
 
+## 10.4.2
+
+### Patch Changes
+
+- [#104](https://github.com/webdev3103/flipkart-amazon-tools/pull/104) [`46c9806`](https://github.com/webdev3103/flipkart-amazon-tools/commit/46c98064231634bc016de0e8435fa5f6aac41b1f) Thanks [@webdev3103](https://github.com/webdev3103)! - Optimize inventory updates with batch API calls for returns processing
+
+  - Add `adjustInventoryBatch` method to InventoryService for processing multiple inventory adjustments in a single transaction
+  - Refactor ReturnsInventoryIntegration service to collect all adjustments and make one batch call instead of individual API calls per return item
+  - Maintain full audit trail and comprehensive error handling for batch operations
+  - Reduce API calls significantly when processing multiple return items, improving performance and reducing database load
+
 ## 10.4.1
 
 ### Patch Changes
