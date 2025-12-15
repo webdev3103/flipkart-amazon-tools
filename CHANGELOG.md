@@ -1,5 +1,18 @@
 # Changelog
 
+## 10.4.3
+
+### Patch Changes
+
+- [#106](https://github.com/webdev3103/flipkart-amazon-tools/pull/106) [`b45868f`](https://github.com/webdev3103/flipkart-amazon-tools/commit/b45868f616332d1ebc839edfa9499ae59eae617e) Thanks [@webdev3103](https://github.com/webdev3103)! - Add Android build and deployment pipeline with Fastlane, build scripts, and Play Store metadata configuration.
+
+- [#106](https://github.com/webdev3103/flipkart-amazon-tools/pull/106) [`b45868f`](https://github.com/webdev3103/flipkart-amazon-tools/commit/b45868f616332d1ebc839edfa9499ae59eae617e) Thanks [@webdev3103](https://github.com/webdev3103)! - Optimize inventory updates with batch API calls for returns processing
+
+  - Add `adjustInventoryBatch` method to InventoryService for processing multiple inventory adjustments in a single transaction
+  - Refactor ReturnsInventoryIntegration service to collect all adjustments and make one batch call instead of individual API calls per return item
+  - Maintain full audit trail and comprehensive error handling for batch operations
+  - Reduce API calls significantly when processing multiple return items, improving performance and reducing database load
+
 ## 10.4.2
 
 ### Patch Changes
