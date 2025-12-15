@@ -96,10 +96,13 @@ if (process.env.NODE_ENV === 'test') {
   const isE2ETest = typeof window !== 'undefined' && window.navigator.webdriver === true;
 
   const shouldConnectToEmulators =
-    !isE2ETest && ( // Disable emulators for E2E tests (Playwright can't access localhost emulators)
-      Capacitor.isNativePlatform() || // Always use emulators on native platforms (dev builds)
+    !isE2ETest && 
+    import.meta.env.MODE !== 'mobile' && // Never use emulators in mobile builds
+    ( // Disable emulators for E2E tests (Playwright can't access localhost emulators)
       import.meta.env.VITE_FIREBASE_FIRESTORE_EMULATOR_HOST ||
-      import.meta.env.DEV
+      import.meta.env.VITE_FIREBASE_AUTH_EMULATOR_PORT ||
+      import.meta.env.VITE_FIREBASE_STORAGE_EMULATOR_PORT ||
+      (import.meta.env.DEV && !Capacitor.isNativePlatform()) // Only use emulators in DEV mode for web, not native
     );
 
   if (shouldConnectToEmulators) {

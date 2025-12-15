@@ -1,0 +1,114 @@
+# Fastlane configuration for Sacred Sutra Tools Android app
+
+default_platform(:android)
+
+platform :android do
+  desc "Build web assets and sync to Capacitor"
+  private_lane :build_web do
+    UI.message("📦 Building web assets...")
+    sh("cd ../.. && npm run build:mobile")
+    
+    UI.message("🔄 Syncing to Capacitor...")
+    sh("cd ../.. && npx cap sync android")
+  end
+
+  desc "Build release APK and AAB"
+  lane :build do
+    # Build web assets first
+    build_web
+    
+    UI.message("🏗️  Building Android app...")
+    
+    # Set Java 21 for Gradle compatibility
+    ENV["JAVA_HOME"] = "/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home"
+    
+    gradle(
+      task: "clean bundle",
+      build_type: "Release"
+    )
+
+    # Also build APK for distribution
+    gradle(
+      task: "assemble",
+      build_type: "Release"
+    )
+
+    UI.success("✅ Build completed successfully!")
+    UI.message("APK: #{lane_context[SharedValues::GRADLE_APK_OUTPUT_PATH]}")
+    UI.message("AAB: #{lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH]}")
+  end
+
+  desc "Deploy to internal testing track"
+  lane :beta do
+    # Build the app (includes web build)
+    build
+
+    # Upload to Play Store internal testing
+    upload_to_play_store(
+      track: 'internal',
+      aab: lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH],
+      skip_upload_apk: true,
+      skip_upload_metadata: false,
+      skip_upload_images: false,
+      skip_upload_screenshots: false
+    )
+
+    UI.success("✅ Successfully deployed to internal testing!")
+  end
+
+  desc "Deploy to production"
+  lane :production do
+    # Build the app (includes web build)
+    build
+
+    # Upload to Play Store production
+    upload_to_play_store(
+      track: 'production',
+      aab: lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH],
+      skip_upload_apk: true,
+      skip_upload_metadata: false,
+      skip_upload_images: false,
+      skip_upload_screenshots: false
+    )
+
+    UI.success("✅ Successfully deployed to production!")
+  end
+
+  desc "Promote internal testing to production"
+  lane :promote_to_production do
+    upload_to_play_store(
+      track: 'internal',
+      track_promote_to: 'production',
+      skip_upload_apk: true,
+      skip_upload_aab: true,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+
+    UI.success("✅ Successfully promoted to production!")
+  end
+
+  desc "Validate Fastlane configuration"
+  lane :validate_config do
+    UI.message("Validating Fastlane configuration...")
+    
+    # Check if keystore exists
+    keystore_path = File.join(Dir.pwd, "app", "release-key.keystore")
+    if File.exist?(keystore_path)
+      UI.success("✅ Keystore found")
+    else
+      UI.error("❌ Keystore not found at #{keystore_path}")
+    end
+
+    # Check if google-services.json exists
+    google_services = File.join(Dir.pwd, "app", "google-services.json")
+    if File.exist?(google_services)
+      UI.success("✅ google-services.json found")
+    else
+      UI.error("❌ google-services.json not found")
+    end
+
+    UI.success("✅ Configuration validation complete!")
+  end
+end
