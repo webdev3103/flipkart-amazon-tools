@@ -1,0 +1,13 @@
+Sacred Sutra Tools is a comprehensive inventory and order management application designed for Sacred Sutra business operations.
+
+Features:
+• Real-time inventory tracking
+• Order management and analytics
+• Barcode scanning for quick product lookup
+• Returns processing and analytics
+• Category and product management
+• Transaction analytics and reporting
+• Firebase-powered cloud sync
+• Offline support with PWA capabilities
+
+Perfect for managing your Sacred Sutra inventory, processing orders, and analyzing business metrics on the go.

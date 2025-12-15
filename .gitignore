@@ -29,6 +29,7 @@ coverage
 .env.development.local
 .env.test.local
 .env.production.local
+.env.mobile
 **/.claude/settings.local.json
 
 # Firebase emulator data
@@ -63,3 +64,23 @@ test-results/
 
 # Husky
 .husky/_
+
+# Fastlane
+android/play-store-credentials.json
+android/fastlane/report.xml
+android/fastlane/README.md
+android/fastlane/test_output
+Gemfile.lock
+
+# Android Keystore & Credentials
+android/app/release-key.keystore
+android/key.properties
+android/*.keystore
+android/*.jks
+
+# iOS Certificates & Provisioning Profiles
+ios/*.p12
+ios/*.mobileprovision
+ios/*.cer
+ios/*.certSigningRequest
+ios/App/GoogleService-Info.plist
