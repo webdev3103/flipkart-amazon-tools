@@ -144,6 +144,7 @@ jobs:
           echo "## 🤖 Android Build Results" >> $GITHUB_STEP_SUMMARY
           
           # Fastlane will handle the build and test invocation
+          cd android
           if bundle exec fastlane android ci_build_debug; then
             echo "✅ Android APK built successfully"
             echo "✅ **Status:** Debug APK built successfully" >> $GITHUB_STEP_SUMMARY
