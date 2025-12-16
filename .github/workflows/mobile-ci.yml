@@ -6,7 +6,6 @@ on:
   pull_request:
     branches: [ master ]
     paths:
-      - 'ios/**'
       - 'android/**'
       - 'capacitor.config.ts'
       - 'src/**'
@@ -180,7 +179,7 @@ jobs:
     name: 🍎 iOS Build & Test
     runs-on: macos-latest
     needs: [setup, web-build]
-    if: needs.web-build.outputs.build-success == 'true'
+    if: needs.web-build.outputs.build-success == 'true' && github.event_name != 'pull_request'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -323,7 +322,11 @@ jobs:
             } else if (iosResult === 'failure') {
               summary += '❌ **iOS:** Build failed, check logs for details\n';
             } else {
-              summary += '⏭️ **iOS:** Skipped due to web build failure\n';
+              if (webBuildSuccess) {
+                summary += '⏭️ **iOS:** Skipped (disabled for this event)\n';
+              } else {
+                summary += '⏭️ **iOS:** Skipped due to web build failure\n';
+              }
             }
 
             summary += '\n';
