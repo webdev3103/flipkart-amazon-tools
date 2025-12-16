@@ -119,6 +119,12 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+
       - name: Download Web Build
         uses: actions/download-artifact@v4
         with:
@@ -131,17 +137,14 @@ jobs:
           npx cap sync android
           echo "✅ Capacitor sync completed"
 
-      - name: Grant Execute Permission for Gradlew
-        run: chmod +x android/gradlew
-
-      - name: Build Android APK (Debug)
+      - name: Build & Test Android (Fastlane)
         id: android-build
         run: |
-          echo "🤖 Building Android APK..."
+          echo "🤖 Building Android APK with Fastlane..."
           echo "## 🤖 Android Build Results" >> $GITHUB_STEP_SUMMARY
           
-          cd android
-          if ./gradlew assembleDebug; then
+          # Fastlane will handle the build and test invocation
+          if bundle exec fastlane android ci_build_debug; then
             echo "✅ Android APK built successfully"
             echo "✅ **Status:** Debug APK built successfully" >> $GITHUB_STEP_SUMMARY
             echo "📱 **Output:** app-debug.apk ready for testing" >> $GITHUB_STEP_SUMMARY
@@ -152,13 +155,6 @@ jobs:
             echo "⚠️ **Action needed:** Fix Android build errors" >> $GITHUB_STEP_SUMMARY
             exit 1
           fi
-
-      - name: Run Android Tests
-        run: |
-          echo "🧪 Running Android unit tests..."
-          cd android
-          ./gradlew testDebugUnitTest
-          echo "✅ Android tests completed"
 
       - name: Upload Android APK
         uses: actions/upload-artifact@v4

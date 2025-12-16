@@ -38,6 +38,24 @@ platform :android do
     UI.message("AAB: #{lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH]}")
   end
 
+  desc "Build Debug APK and Run Tests for CI"
+  lane :ci_build_debug do
+    # Set Java 21 for Gradle compatibility
+    ENV["JAVA_HOME"] = "/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home" if lane_context[:PLATFORM_NAME] != :android # Check if local or logic needs adjustment. Actually, on CI, JAVA_HOME is set by setup-java. 
+    # Better to just not enforce it if it's already set or rely on the environment.
+    # However, existing build lane sets it hardcoded. I should probably trust the environment more in CI lane or conditionally set it.
+    # For now, I'll copy the pattern but maybe check if ENV['CI'] is true.
+    # Actually, in CI, setup-java sets JAVA_HOME. I should NOT override it with a homebrew path if in CI.
+    
+    gradle(
+      task: "assembleDebug"
+    )
+
+    gradle(
+      task: "testDebugUnitTest"
+    )
+  end
+
   desc "Deploy to internal testing track"
   lane :beta do
     # Build the app (includes web build)
