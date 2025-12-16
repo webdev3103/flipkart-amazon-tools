@@ -4,6 +4,7 @@ import { Route, Routes } from "react-router-dom";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { ProtectedRoutes } from "./components/ProtectedRoutes";
 import { LoginPage } from "./pages/auth/login.page";
+import { PrivacyPolicyPage } from "./pages/public/privacy-policy.page";
 import React from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
 import monitoringService from "./services/monitoring.service";
@@ -54,6 +55,7 @@ export default function App({
         >
           <Routes>
           <Route path={`${basePath}/login`} element={<LoginPage />} />
+          <Route path={`${basePath}/privacy-policy`} element={<PrivacyPolicyPage />} />
           <Route
             path={`${basePath}/health`}
             element={
