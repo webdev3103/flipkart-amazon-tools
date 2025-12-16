@@ -83,4 +83,5 @@ ios/*.p12
 ios/*.mobileprovision
 ios/*.cer
 ios/*.certSigningRequest
+.env.mobile
 ios/App/GoogleService-Info.plist
