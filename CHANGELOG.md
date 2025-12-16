@@ -1,5 +1,11 @@
 # Changelog
 
+## 10.4.4
+
+### Patch Changes
+
+- [#108](https://github.com/webdev3103/flipkart-amazon-tools/pull/108) [`b77c0e7`](https://github.com/webdev3103/flipkart-amazon-tools/commit/b77c0e75f335dc56a39e4069c74eb0a5865ee550) Thanks [@webdev3103](https://github.com/webdev3103)! - Enable Android/iOS build checks on Pull Requests.
+
 ## 10.4.3
 
 ### Patch Changes
