@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.sacredsutra.tools',
-  appName: 'Sacred Sutra Tools',
+  appName: 'SS Manager',
   webDir: 'dist',
   server: {
     // Use HTTP instead of HTTPS for development to allow emulator connections
