@@ -1,5 +1,22 @@
 # Changelog
 
+## 10.6.0
+
+### Minor Changes
+
+- [#112](https://github.com/webdev3103/flipkart-amazon-tools/pull/112) [`a303c83`](https://github.com/webdev3103/flipkart-amazon-tools/commit/a303c8394ae2fb652a238ac7842d42ad7387971a) Thanks [@webdev3103](https://github.com/webdev3103)! - Implement multi-tenant Firebase configuration with build-time injection
+
+  - Add dynamic Firebase project selection based on hostname
+  - Support multiple Firebase projects via `VITE_TENANT_CONFIGS` environment variable
+  - Inject tenant configurations from GitHub Secrets during CI/CD builds
+  - Add automatic redirect to default host for unknown domains
+  - Create comprehensive setup documentation
+  - Update all CI workflows to support tenant config injection
+
+### Patch Changes
+
+- [#112](https://github.com/webdev3103/flipkart-amazon-tools/pull/112) [`a303c83`](https://github.com/webdev3103/flipkart-amazon-tools/commit/a303c8394ae2fb652a238ac7842d42ad7387971a) Thanks [@webdev3103](https://github.com/webdev3103)! - Fix: Inject VITE_DEFAULT_HOST environment variable in CI/CD workflows and update default host configuration.
+
 ## 10.5.0
 
 ### Minor Changes
