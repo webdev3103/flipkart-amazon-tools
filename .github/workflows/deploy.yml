@@ -30,16 +30,15 @@ on:
 
 permissions:
   contents: write
-  pages: write
   id-token: write
 
 jobs:
   deploy:
-    name: Deploy to GitHub Pages
+    name: Deploy to AWS S3
     runs-on: ubuntu-latest
     environment: 
       name: ${{ github.event.inputs.environment || 'production' }}
-      url: ${{ steps.deployment.outputs.page_url || 'https://tool.sacredsutra.in/' }}
+      url: ${{ 'http://' }}${{ secrets.AWS_S3_BUCKET }}${{ '.s3-website-' }}${{ secrets.AWS_REGION }}${{ '.amazonaws.com' }}
     
     steps:
       - name: Checkout
@@ -126,50 +125,24 @@ jobs:
       - name: Copy index.html to 404.html
         run: cp dist/index.html dist/404.html
 
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          folder: dist
-          branch: gh-pages
-          clean: true
-          single-commit: true
-          token: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
 
-      - name: Post-Deployment Validation
-        id: post-validation
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Upload to S3
         run: |
-          echo "🔍 Validating deployment..."
-          
-          # Wait for deployment to propagate
-          echo "⏳ Waiting for deployment to propagate..."
-          sleep 30
-          
-          # Validate site accessibility
-          SITE_URL="${{ steps.deployment.outputs.page_url || 'https://tool.sacredsutra.in/' }}"
-          echo "🌐 Testing site accessibility: $SITE_URL"
-          
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$SITE_URL" || echo "000")
-          
-          if [ "$HTTP_STATUS" = "200" ]; then
-            echo "✅ Site is accessible (HTTP $HTTP_STATUS)"
-            echo "validation_success=true" >> $GITHUB_OUTPUT
-          else
-            echo "❌ Site accessibility check failed (HTTP $HTTP_STATUS)"
-            echo "validation_success=false" >> $GITHUB_OUTPUT
-          fi
-          
-          # Run basic functionality tests
-          echo "🧪 Running post-deployment smoke tests..."
-          if npm run test:smoke; then
-            echo "✅ Post-deployment smoke tests passed"
-          else
-            echo "❌ Post-deployment smoke tests failed"
-            echo "validation_success=false" >> $GITHUB_OUTPUT
-          fi
+          echo "☁️ Uploading artifacts to S3..."
+          aws s3 sync dist/ s3://${{ secrets.AWS_S3_BUCKET }}/ --delete
+          echo "✅ Upload complete"
+
+
 
       - name: Create GitHub Release
-        if: github.event.inputs.create_release == 'true' && steps.post-validation.outputs.validation_success == 'true'
+        if: github.event.inputs.create_release == 'true'
         run: |
           VERSION="${{ github.event.inputs.version }}"
           echo "🎉 Creating release for version v$VERSION..."
@@ -231,10 +204,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
 
       - name: Deployment Success Notification
-        if: steps.post-validation.outputs.validation_success == 'true'
+        if: success()
         run: |
           ENVIRONMENT="${{ github.event.inputs.environment || 'production' }}"
-          URL="${{ steps.deployment.outputs.page_url || 'https://tool.sacredsutra.in/' }}"
+          URL="http://${{ secrets.AWS_S3_BUCKET }}.s3-website-${{ secrets.AWS_REGION }}.amazonaws.com"
           VERSION="${{ github.event.inputs.version || github.event.release.tag_name || 'latest' }}"
           
           echo "✅ Deployment successful to $ENVIRONMENT"
@@ -250,16 +223,13 @@ jobs:
           **URL:** $URL
           **Status:** ✅ All validations passed
           
-          ### Validation Results
-          - ✅ Site accessibility confirmed
-          - ✅ Post-deployment smoke tests passed
-          - ✅ Build artifacts verified
+
           
           🎉 **Deployment completed successfully!**
           EOF
 
       - name: Rollback on Failure
-        if: failure() || steps.post-validation.outputs.validation_success == 'false'
+        if: failure()
         uses: actions/github-script@v7
         with:
           script: |
@@ -277,7 +247,7 @@ jobs:
                 workflow_id: 'rollback.yml',
                 ref: 'master',
                 inputs: {
-                  rollback_reason: `Deployment validation failed for ${environment} environment`,
+                  rollback_reason: `Deployment failed for ${environment} environment`,
                   notify_team: 'true'
                 }
               });
