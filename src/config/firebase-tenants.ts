@@ -9,7 +9,7 @@ export interface FirebaseConfig {
 }
 
 // Configurable default host via environment variable
-export const DEFAULT_HOST = import.meta.env.VITE_DEFAULT_HOST || 'app.sacredsutra.com';
+export const DEFAULT_HOST = import.meta.env.VITE_DEFAULT_HOST || 'bina.sacredsutra.in';
 
 // Parse tenant configs from environment variable (injected at build time)
 const parseTenantConfigs = (): Record<string, FirebaseConfig> => {
