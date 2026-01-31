@@ -1,0 +1,1 @@
+import{j as s,V as n,bQ as t,ay as d,ba as o}from"./mui-vendor-DlldRxor.js";function C({header:r,children:x,actions:a,contentPadding:i=2,...e}){return s.jsxs(n,{elevation:2,sx:{borderRadius:2,minHeight:44,...e.sx},...e,children:[r&&s.jsx(t,{sx:{pb:0},children:r}),s.jsx(d,{sx:{p:i},children:x}),a&&s.jsx(o,{sx:{pt:0},children:a})]})}export{C as M};
