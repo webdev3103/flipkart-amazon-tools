@@ -1,5 +1,12 @@
 # Changelog
 
+## 10.8.0
+
+### Minor Changes
+
+- [#116](https://github.com/webdev3103/flipkart-amazon-tools/pull/116) [`d6da2a3`](https://github.com/webdev3103/flipkart-amazon-tools/commit/d6da2a3a04460e3b16c4eb8b8b381837854b88fd) Thanks [@webdev3103](https://github.com/webdev3103)! - feat: add AWS S3 upload for production builds via OIDC and remove GitHub Pages deployment.
+  feat: add error display for unknown tenants in firebase config.
+
 ## 10.7.0
 
 ### Minor Changes
