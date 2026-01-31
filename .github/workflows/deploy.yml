@@ -38,7 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: 
       name: ${{ github.event.inputs.environment || 'production' }}
-      url: ${{ 'http://' }}${{ secrets.AWS_S3_BUCKET }}${{ '.s3-website-' }}${{ secrets.AWS_REGION }}${{ '.amazonaws.com' }}
+      url: ${{ steps.construct-url.outputs.url }}
     
     steps:
       - name: Checkout
@@ -133,6 +133,13 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      - name: Construct S3 URL
+        id: construct-url
+        run: |
+          URL="http://${{ secrets.AWS_S3_BUCKET }}.s3-website-${{ secrets.AWS_REGION }}.amazonaws.com"
+          echo "url=$URL" >> $GITHUB_OUTPUT
+          echo "🌐 S3 Website URL: $URL"
+
       - name: Upload to S3
         run: |
           echo "☁️ Uploading artifacts to S3..."
@@ -168,7 +175,7 @@ jobs:
 
           This release has been automatically deployed to production.
 
-          🌐 **Live URL**: https://tool.sacredsutra.in/
+          🌐 **Live URL**: ${{ steps.construct-url.outputs.url }}
 
           ## Assets
 
@@ -207,7 +214,7 @@ jobs:
         if: success()
         run: |
           ENVIRONMENT="${{ github.event.inputs.environment || 'production' }}"
-          URL="http://${{ secrets.AWS_S3_BUCKET }}.s3-website-${{ secrets.AWS_REGION }}.amazonaws.com"
+          URL="${{ steps.construct-url.outputs.url }}"
           VERSION="${{ github.event.inputs.version || github.event.release.tag_name || 'latest' }}"
           
           echo "✅ Deployment successful to $ENVIRONMENT"
