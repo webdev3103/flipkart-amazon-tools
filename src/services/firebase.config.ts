@@ -15,15 +15,35 @@ import {
 } from 'firebase/storage';
 import { Capacitor } from '@capacitor/core';
 
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'test-api-key',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'test-auth-domain',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'test-project-id',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'test-storage-bucket',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || 'test-messaging-sender-id',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || 'test-app-id',
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || 'test-measurement-id'
-};
+import { getTenantConfig, DEFAULT_HOST, FirebaseConfig } from '../config/firebase-tenants';
+
+let firebaseConfig: FirebaseConfig;
+
+// Determine host and get config
+if (process.env.NODE_ENV === 'test') {
+  // Mock config for tests
+  firebaseConfig = {
+    apiKey: 'test-api-key',
+    authDomain: 'test-auth-domain',
+    projectId: 'test-project-id',
+    storageBucket: 'test-storage-bucket',
+    messagingSenderId: 'test-messaging-sender-id',
+    appId: 'test-app-id',
+    measurementId: 'test-measurement-id'
+  };
+} else {
+  const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+  const tenantConfig = getTenantConfig(host);
+
+  if (!tenantConfig) {
+    // Unknown host - Redirect to default
+    if (typeof window !== 'undefined') {
+      window.location.href = `https://${DEFAULT_HOST}`;
+    }
+    throw new Error(`Unknown host: ${host}, redirecting to ${DEFAULT_HOST}...`);
+  }
+  firebaseConfig = tenantConfig;
+}
 
 let app: FirebaseApp;
 let auth: Auth;

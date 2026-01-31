@@ -244,6 +244,8 @@ jobs:
           ENV_FILE: ${{ secrets.ENV_FILE }}
 
       - name: Build Application
+        env:
+          VITE_TENANT_CONFIGS: ${{ secrets.VITE_TENANT_CONFIGS }}
         run: |
           echo "🏗️ Building application for production..."
           echo "## 🏗️ Build Results" >> $GITHUB_STEP_SUMMARY
