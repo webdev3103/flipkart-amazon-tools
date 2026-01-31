@@ -15,7 +15,7 @@ import {
 } from 'firebase/storage';
 import { Capacitor } from '@capacitor/core';
 
-import { getTenantConfig, DEFAULT_HOST, FirebaseConfig } from '../config/firebase-tenants';
+import { getTenantConfig, FirebaseConfig, tenantConfigs } from '../config/firebase-tenants';
 
 let firebaseConfig: FirebaseConfig;
 
@@ -36,11 +36,28 @@ if (process.env.NODE_ENV === 'test') {
   const tenantConfig = getTenantConfig(host);
 
   if (!tenantConfig) {
-    // Unknown host - Redirect to default
+    const errorMsg = `❌ Unknown host: "${host}"<br/>📋 Available tenants: <pre>${JSON.stringify(Object.keys(tenantConfigs || {}), null, 2)}</pre>`;
+    console.error(`❌ unknown host: "${host}"`);
+    console.error(`📋 Available tenants:`, Object.keys(tenantConfigs || {}));
+
     if (typeof window !== 'undefined') {
-      window.location.href = `https://${DEFAULT_HOST}`;
+      document.body.innerHTML = `
+        <div style="
+          padding: 20px;
+          margin: 20px;
+          border: 2px solid red;
+          border-radius: 8px;
+          background: #fff0f0;
+          font-family: monospace;
+          color: #333;
+        ">
+          <h1 style="color: red;">Configuration Error</h1>
+          <p>${errorMsg}</p>
+          <p>Please check your <code>VITE_TENANT_CONFIGS</code> in GitHub Secrets.</p>
+        </div>
+      `;
     }
-    throw new Error(`Unknown host: ${host}, redirecting to ${DEFAULT_HOST}...`);
+    throw new Error(`Unknown host: ${host}`);
   }
   firebaseConfig = tenantConfig;
 }
