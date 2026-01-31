@@ -44,14 +44,12 @@ Create a JSON object containing all your tenant configurations:
 5. Value: Paste your minified JSON
 6. Click **Add secret**
 
-### 3. Set Default Host (Required for Redirects)
+### 3. Set Default Host (Optional)
 
-Add another secret for the default host to ensure unknown domains redirect correctly:
+Add another secret for the default host:
 
 1. Name: `VITE_DEFAULT_HOST`
-2. Value: `bina.sacredsutra.in` (or your preferred default domain)
-
-**Note:** If this secret is not set, the app may fall back to build-time defaults, but it is recommended to set this explicitly in GitHub Secrets to verify redirect behavior.
+2. Value: `app.example.com` (your main domain)
 
 ## Local Development
 
