@@ -246,6 +246,7 @@ jobs:
       - name: Build Application
         env:
           VITE_TENANT_CONFIGS: ${{ secrets.VITE_TENANT_CONFIGS }}
+          VITE_DEFAULT_HOST: ${{ secrets.VITE_DEFAULT_HOST }}
         run: |
           echo "🏗️ Building application for production..."
           echo "## 🏗️ Build Results" >> $GITHUB_STEP_SUMMARY

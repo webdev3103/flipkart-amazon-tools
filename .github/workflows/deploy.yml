@@ -108,6 +108,7 @@ jobs:
         if: steps.check-artifacts.outputs.artifacts_available == 'false'
         env:
           VITE_TENANT_CONFIGS: ${{ secrets.VITE_TENANT_CONFIGS }}
+          VITE_DEFAULT_HOST: ${{ secrets.VITE_DEFAULT_HOST }}
         run: |
           echo "🔨 No build artifacts found, building from source..."
           npm run build

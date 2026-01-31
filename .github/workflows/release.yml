@@ -73,6 +73,7 @@ jobs:
         if: steps.check-changesets.outputs.has_changesets == 'true' && steps.download-ci-artifacts.outcome == 'failure'
         env:
           VITE_TENANT_CONFIGS: ${{ secrets.VITE_TENANT_CONFIGS }}
+          VITE_DEFAULT_HOST: ${{ secrets.VITE_DEFAULT_HOST }}
         run: |
           echo "🔨 CI artifacts not available, building from source..."
           npm run build
