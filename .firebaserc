@@ -1,5 +1,7 @@
 {
   "projects": {
-    "default": "sacred-sutra"
+    "default": "sacred-sutra",
+    "indore": "vedic-roots-877cb"
   }
 }
+
