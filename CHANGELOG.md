@@ -1,5 +1,14 @@
 # Changelog
 
+## 10.9.0
+
+### Minor Changes
+
+- [#118](https://github.com/webdev3103/flipkart-amazon-tools/pull/118) [`4044d2c`](https://github.com/webdev3103/flipkart-amazon-tools/commit/4044d2c946f01d390016e023c2b509ae6fdb497e) Thanks [@webdev3103](https://github.com/webdev3103)! - feat: add AWS S3 upload for production builds via OIDC and remove GitHub Pages deployment.
+  feat: add error display for unknown tenants in firebase config.
+
+- [#118](https://github.com/webdev3103/flipkart-amazon-tools/pull/118) [`693923b`](https://github.com/webdev3103/flipkart-amazon-tools/commit/693923b1ce2fcaeb1a378f3f3e046d65c4ef244e) Thanks [@webdev3103](https://github.com/webdev3103)! - feat: add indore project alias to Firebase configuration for multi-tenant support
+
 ## 10.8.0
 
 ### Minor Changes
