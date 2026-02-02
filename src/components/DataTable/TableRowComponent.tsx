@@ -19,14 +19,14 @@ interface TableRowComponentProps<T> {
 }
 
 function TableRowComponentBase<T>(props: TableRowComponentProps<T>) {
-  const { 
-    row, 
-    columns, 
-    index, 
-    onClick, 
-    enableSelection, 
-    selected = false, 
-    onSelect, 
+  const {
+    row,
+    columns,
+    index,
+    onClick,
+    enableSelection,
+    selected = false,
+    onSelect,
     rowId,
     renderCollapse,
     isExpanded = false,
@@ -53,23 +53,12 @@ function TableRowComponentBase<T>(props: TableRowComponentProps<T>) {
 
   return (
     <React.Fragment>
-      <TableRow 
-        hover 
+      <TableRow
+        hover
         key={index}
         onClick={() => onClick?.(row)}
         sx={{ cursor: onClick ? 'pointer' : 'default' }}
       >
-        {renderCollapse && (
-          <TableCell padding="checkbox">
-            <IconButton
-              aria-label="expand row"
-              size="small"
-              onClick={handleExpandClick}
-            >
-              {isExpanded ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
-            </IconButton>
-          </TableCell>
-        )}
         {enableSelection && (
           <TableCell padding="checkbox" onClick={handleCellClick}>
             <Checkbox
@@ -79,24 +68,44 @@ function TableRowComponentBase<T>(props: TableRowComponentProps<T>) {
             />
           </TableCell>
         )}
-        {columns.map((column) => {
+        {columns.map((column, colIndex) => {
           const value = row[column.id as keyof T];
+          const isFirstColumn = colIndex === 0;
+
           return (
-            <TableCell 
-              key={String(column.id)} 
+            <TableCell
+              key={String(column.id)}
               align={column.align}
               sx={{ minWidth: column.minWidth, width: 'auto' }}
             >
-              {column.format 
-                ? column.format(value, row)
-                : String(value ?? '')}
+              {isFirstColumn && renderCollapse ? (
+                <Box display="flex" alignItems="center" gap={0.5}>
+                  <IconButton
+                    aria-label="expand row"
+                    size="small"
+                    onClick={handleExpandClick}
+                    sx={{ padding: 0.5 }}
+                  >
+                    {isExpanded ? <KeyboardArrowUpIcon fontSize="small" /> : <KeyboardArrowDownIcon fontSize="small" />}
+                  </IconButton>
+                  {column.format
+                    ? column.format(value, row)
+                    : String(value ?? '')}
+                </Box>
+              ) : (
+                <>
+                  {column.format
+                    ? column.format(value, row)
+                    : String(value ?? '')}
+                </>
+              )}
             </TableCell>
           );
         })}
       </TableRow>
       {renderCollapse && (
         <TableRow>
-          <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={columns.length + (enableSelection ? 1 : 0) + 1}>
+          <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={columns.length + (enableSelection ? 1 : 0)}>
             <Collapse in={isExpanded} timeout="auto" unmountOnExit>
               <Box sx={{ margin: 1 }}>
                 {renderCollapse(row)}
