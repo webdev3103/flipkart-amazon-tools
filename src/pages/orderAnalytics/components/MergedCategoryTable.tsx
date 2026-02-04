@@ -25,6 +25,7 @@ interface MergedCategoryRow {
   categoryId: string;
   categoryName: string;
   totalOrders: number;
+  totalQuantity: number;
   todayOrders: number;
   yesterdayOrders: number;
   orderChange: number;
@@ -35,10 +36,10 @@ interface MergedCategoryRow {
   profitMargin: number;
 }
 
-const MergedCategoryTable: React.FC<MergedCategoryTableProps> = ({ 
-  historicalData, 
-  orders, 
-  categories 
+const MergedCategoryTable: React.FC<MergedCategoryTableProps> = ({
+  historicalData,
+  orders,
+  categories
 }) => {
   const [loading, setLoading] = useState(true);
   const [mergedData, setMergedData] = useState<MergedCategoryRow[]>([]);
@@ -76,14 +77,14 @@ const MergedCategoryTable: React.FC<MergedCategoryTableProps> = ({
 
   // Memoized financial data calculation
   const financialData = useMemo(() => {
-    const data: Record<string, { revenue: number; cost: number; profit: number }> = {};
-    
+    const data: Record<string, { revenue: number; cost: number; profit: number; quantity: number }> = {};
+
     // Group orders by category for batch processing
     const ordersByCategory: Record<string, ProductSummary[]> = {};
     orders.forEach(order => {
       const categoryId = order.product?.categoryId;
       const categoryName = categoryId ? (categoryIdToName[categoryId] || 'Uncategorized') : 'Uncategorized';
-      
+
       if (!ordersByCategory[categoryName]) {
         ordersByCategory[categoryName] = [];
       }
@@ -92,19 +93,18 @@ const MergedCategoryTable: React.FC<MergedCategoryTableProps> = ({
 
     // Calculate financial data for each category
     Object.entries(ordersByCategory).forEach(([categoryName, categoryOrders]) => {
-      data[categoryName] = { revenue: 0, cost: 0, profit: 0 };
-      
+      data[categoryName] = { revenue: 0, cost: 0, profit: 0, quantity: 0 };
+
       categoryOrders.forEach(order => {
         const quantity = parseInt(order.quantity) || 1;
         const sellingPrice = order.product?.sellingPrice || 0;
-        
-        // Cost calculation removed (was using customCostPrice)
-        const costPrice = 0;
-        
+        const costPrice = 0; // Cost calculation removed
+
         data[categoryName].revenue += sellingPrice * quantity;
         data[categoryName].cost += costPrice * quantity;
+        data[categoryName].quantity += quantity;
       });
-      
+
       data[categoryName].profit = data[categoryName].revenue - data[categoryName].cost;
     });
 
@@ -116,16 +116,17 @@ const MergedCategoryTable: React.FC<MergedCategoryTableProps> = ({
     if (!historicalData.length) return [];
 
     const merged: MergedCategoryRow[] = [];
-    
+
     // Add all categories from historical data
     historicalData.forEach(historical => {
-      const financial = financialData[historical.categoryName] || { revenue: 0, cost: 0, profit: 0 };
+      const financial = financialData[historical.categoryName] || { revenue: 0, cost: 0, profit: 0, quantity: 0 };
       const profitMargin = financial.revenue > 0 ? (financial.profit / financial.revenue) * 100 : 0;
-      
+
       merged.push({
         categoryId: historical.categoryId,
         categoryName: historical.categoryName,
         totalOrders: historical.totalOrders,
+        totalQuantity: financial.quantity,
         todayOrders: historical.todayOrders,
         yesterdayOrders: historical.yesterdayOrders,
         orderChange: historical.orderChange,
@@ -149,12 +150,12 @@ const MergedCategoryTable: React.FC<MergedCategoryTableProps> = ({
   const filteredData = useMemo(() => {
     if (!searchQuery) return mergedData;
     const lowerQuery = searchQuery.toLowerCase();
-    return mergedData.filter(row => 
+    return mergedData.filter(row =>
       row.categoryName.toLowerCase().includes(lowerQuery)
     );
   }, [mergedData, searchQuery]);
 
-  // Calculate totals for percentages
+  // Calculate totals
   const totals = useMemo(() => {
     return mergedData.reduce((acc, row) => ({
       orders: acc.orders + row.totalOrders,
@@ -170,49 +171,27 @@ const MergedCategoryTable: React.FC<MergedCategoryTableProps> = ({
     },
     {
       id: 'totalOrders',
-      label: 'Total Orders',
-      align: 'left',
-      minWidth: 150,
-      format: (value, row) => {
-        const percentage = totals.orders > 0 ? ((value as number) / totals.orders) * 100 : 0;
-        return (
-          <Box sx={{ width: '100%' }}>
-            <Box display="flex" justifyContent="space-between" mb={0.5}>
-              <Typography variant="body2">{(value as number).toLocaleString()}</Typography>
-              <Typography variant="caption" color="text.secondary">{percentage.toFixed(1)}%</Typography>
-            </Box>
-            <Box 
-              sx={{ 
-                width: '100%', 
-                height: 6, 
-                bgcolor: 'action.hover', 
-                borderRadius: 1,
-                overflow: 'hidden'
-              }}
-            >
-              <Box 
-                sx={{ 
-                  width: `${percentage}%`, 
-                  height: '100%', 
-                  bgcolor: 'primary.main',
-                  borderRadius: 1
-                }} 
-              />
-            </Box>
-            <ComparisonIndicator
-          value={row?.orderChange || 0}
-          percentage={row?.orderChangePercent || 0}
-          size="small"
-        />
-          </Box>
-        );
-      },
+      label: 'Orders',
+      align: 'right',
+      minWidth: 100,
+      format: (value) => (
+        <Typography variant="body2" fontWeight="medium">{(value as number).toLocaleString()}</Typography>
+      ),
+    },
+    {
+      id: 'totalQuantity',
+      label: 'Qty',
+      align: 'right',
+      minWidth: 80,
+      format: (value) => (
+        <Typography variant="body2">{(value as number).toLocaleString()}</Typography>
+      ),
     },
     {
       id: 'orderChange',
-      label: 'Vs Yesterday',
+      label: 'Trend',
       align: 'right',
-      minWidth: 150,
+      minWidth: 100,
       format: (value, row) => (
         <ComparisonIndicator
           value={row?.orderChange || 0}
@@ -225,37 +204,30 @@ const MergedCategoryTable: React.FC<MergedCategoryTableProps> = ({
       id: 'totalRevenue',
       label: 'Revenue',
       align: 'right',
-      minWidth: 150,
+      minWidth: 130,
       format: (value, _row) => {
         const percentage = totals.revenue > 0 ? ((value as number) / totals.revenue) * 100 : 0;
         return (
           <Box>
             <FormattedCurrency value={value as number} />
             <Typography variant="caption" display="block" color="text.secondary">
-              {percentage.toFixed(1)}% share
+              {percentage.toFixed(1)}%
             </Typography>
           </Box>
         );
       },
     },
     {
-      id: 'totalCost',
-      label: 'Cost',
-      align: 'right',
-      minWidth: 150,
-      format: (value) => <FormattedCurrency value={value as number} />, 
-    },
-    {
       id: 'profit',
       label: 'Profit',
       align: 'right',
-      minWidth: 150,
+      minWidth: 130,
       format: (value, row) => (
         <Box>
           <FormattedCurrency value={value as number} />
-          <Box fontSize="0.75rem" color="text.secondary">
-            {row?.profitMargin.toFixed(1)}%
-          </Box>
+          <Typography variant="caption" display="block" color="text.secondary">
+            {row?.profitMargin.toFixed(1)}% margin
+          </Typography>
         </Box>
       ),
     },
