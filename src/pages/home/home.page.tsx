@@ -175,9 +175,8 @@ const DesktopHomePage: React.FC = () => {
         const autoSaveConfig = {
           ...defaultStorageConfig,
           expiryDays: 7, // Set a default expiry of 7 days
-          description: `Auto-saved PDF with ${summary.length} products across ${
-            categories.filter((c) => !!c.name).length
-          } categories`,
+          description: `Auto-saved PDF with ${summary.length} products across ${categories.filter((c) => !!c.name).length
+            } categories`,
         };
 
         // Upload to Firebase Storage using selected date
@@ -189,11 +188,9 @@ const DesktopHomePage: React.FC = () => {
             categoryCount: categories.length,
             productCount: summary.length,
             sortConfig: defaultSortConfig,
-            description: `Auto-saved PDF with ${
-              summary.length
-            } products across ${
-              categories.filter((c) => !!c.name).length
-            } categories`,
+            description: `Auto-saved PDF with ${summary.length
+              } products across ${categories.filter((c) => !!c.name).length
+              } categories`,
           },
           autoSaveConfig
         );
@@ -230,10 +227,6 @@ const DesktopHomePage: React.FC = () => {
     });
   }, [
     finalPdf,
-    isUploading,
-    uploadResult,
-    summary.length,
-    categories,
     isAuthenticated,
     processedPdfUrl,
     selectedDate,
@@ -336,9 +329,8 @@ const DesktopHomePage: React.FC = () => {
           categoryCount: categories.length,
           productCount: summary.length,
           sortConfig: defaultSortConfig,
-          description: `Sorted PDF with ${summary.length} products across ${
-            categories.filter((c) => !!c.name).length
-          } categories`,
+          description: `Sorted PDF with ${summary.length} products across ${categories.filter((c) => !!c.name).length
+            } categories`,
         },
         storageConfig
       );

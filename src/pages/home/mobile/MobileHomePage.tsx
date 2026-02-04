@@ -127,9 +127,8 @@ export const MobileHomePage: React.FC = () => {
         const autoSaveConfig = {
           ...defaultStorageConfig,
           expiryDays: 7,
-          description: `Auto-saved PDF with ${summary.length} products across ${
-            categories.filter((c) => !!c.name).length
-          } categories`,
+          description: `Auto-saved PDF with ${summary.length} products across ${categories.filter((c) => !!c.name).length
+            } categories`,
         };
 
         const result = await pdfStorageService.uploadPdfForDate(
@@ -140,11 +139,9 @@ export const MobileHomePage: React.FC = () => {
             categoryCount: categories.length,
             productCount: summary.length,
             sortConfig: defaultSortConfig,
-            description: `Auto-saved PDF with ${
-              summary.length
-            } products across ${
-              categories.filter((c) => !!c.name).length
-            } categories`,
+            description: `Auto-saved PDF with ${summary.length
+              } products across ${categories.filter((c) => !!c.name).length
+              } categories`,
           },
           autoSaveConfig
         );
@@ -176,10 +173,6 @@ export const MobileHomePage: React.FC = () => {
     });
   }, [
     finalPdf,
-    isUploading,
-    uploadResult,
-    summary.length,
-    categories,
     isAuthenticated,
     processedPdfUrl,
     selectedDate,
