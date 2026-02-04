@@ -1,5 +1,12 @@
 # Changelog
 
+## 10.10.0
+
+### Minor Changes
+
+- [#120](https://github.com/webdev3103/flipkart-amazon-tools/pull/120) [`fba999b`](https://github.com/webdev3103/flipkart-amazon-tools/commit/fba999b07c06f519106f9ea1626fc8b1e9c47179) Thanks [@webdev3103](https://github.com/webdev3103)! - - feat: Introduce total quantity column and refine display of order analytics table.
+  - refactor: Remove unnecessary dependencies from `useEffect` hooks in home page components.
+
 ## 10.9.0
 
 ### Minor Changes
