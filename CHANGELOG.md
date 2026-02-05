@@ -1,5 +1,11 @@
 # Changelog
 
+## 10.10.1
+
+### Patch Changes
+
+- [#122](https://github.com/webdev3103/flipkart-amazon-tools/pull/122) [`1ace8e7`](https://github.com/webdev3103/flipkart-amazon-tools/commit/1ace8e77328fbe9a99ee40615bb0b3f2e23a7588) Thanks [@webdev3103](https://github.com/webdev3103)! - chore: verify trunk-based release workflow
+
 ## 10.10.0
 
 ### Minor Changes
