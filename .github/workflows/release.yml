@@ -87,19 +87,23 @@ jobs:
           path: dist/
           retention-days: 1
 
-      - name: Create Release Pull Request or Publish to npm
+      - name: Version and Release
         if: steps.check-changesets.outputs.has_changesets == 'true'
-        id: changesets
-        uses: changesets/action@v1
-        with:
-          # For frontend apps, we don't publish to npm, so we remove the publish step
-          # This will only create release PRs when there are changesets
-          title: "chore: release packages"
-          commit: "chore: release packages"
-          createGithubReleases: false
         env:
-          # Use PAT if available for better permissions, otherwise use GITHUB_TOKEN
           GITHUB_TOKEN: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Version packages
+          npm run version
+          
+          # Commit changes
+          git add .
+          git commit -m "chore: release packages"
+          
+          # Push changes
+          git push origin master
 
       - name: Check if version was bumped
         id: check-version-bump
