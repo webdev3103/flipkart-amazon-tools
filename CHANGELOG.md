@@ -1,5 +1,11 @@
 # Changelog
 
+## 10.11.0
+
+### Minor Changes
+
+- [#123](https://github.com/webdev3103/flipkart-amazon-tools/pull/123) [`dd2621f`](https://github.com/webdev3103/flipkart-amazon-tools/commit/dd2621ffdfb81a65042e92d432ee98be05d43827) Thanks [@webdev3103](https://github.com/webdev3103)! - feat: show order id in active orders table
+
 ## 10.10.1
 
 ### Patch Changes
