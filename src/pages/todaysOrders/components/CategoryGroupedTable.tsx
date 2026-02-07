@@ -644,4 +644,4 @@ export const CategoryGroupedTable: React.FC<CategoryGroupedTableProps> = ({ grou
       )}
     </Box>
   );
-}; 
+};
