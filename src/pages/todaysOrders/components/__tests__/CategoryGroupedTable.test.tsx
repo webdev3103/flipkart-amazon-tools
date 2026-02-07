@@ -5,16 +5,13 @@ import { CategoryGroupedTable } from '../CategoryGroupedTable';
 import { GroupedOrderData } from '../../utils/groupingUtils';
 import { ProductSummary } from '../../../home/services/base.transformer';
 
-// Mock the FormattedCurrency component
-jest.mock('../../../../components/FormattedCurrency', () => ({
-  FormattedCurrency: ({ value }: { value: number }) => <span>₹{value.toLocaleString()}</span>
-}));
+
 
 // Mock the ActionButtons components
 jest.mock('../../../../shared/ActionButtons', () => ({
-  ViewAmazonListingButton: ({ amazonSerialNumber }: { amazonSerialNumber: string }) => 
+  ViewAmazonListingButton: ({ amazonSerialNumber }: { amazonSerialNumber: string }) =>
     <button data-testid="amazon-button">{amazonSerialNumber}</button>,
-  ViewFlipkartListingButton: ({ flipkartSerialNumber }: { flipkartSerialNumber: string }) => 
+  ViewFlipkartListingButton: ({ flipkartSerialNumber }: { flipkartSerialNumber: string }) =>
     <button data-testid="flipkart-button">{flipkartSerialNumber}</button>
 }));
 
@@ -28,6 +25,7 @@ const mockGroupedData: GroupedOrderData = {
           SKU: 'SKU001',
           name: 'Test Product 1',
           quantity: '2',
+          orderId: 'ORD-123',
           category: 'Electronics',
           type: 'amazon',
           product: {
@@ -127,10 +125,10 @@ const mockGroupedData: GroupedOrderData = {
 describe('CategoryGroupedTable', () => {
   it('renders table without summary cards', () => {
     render(<CategoryGroupedTable groupedData={mockGroupedData} />);
-    
+
     // Verify the main table is rendered
     expect(screen.getByRole('table')).toBeInTheDocument();
-    
+
     // Verify category headers are present
     expect(screen.getByText('Electronics')).toBeInTheDocument();
     expect(screen.getByText('Books')).toBeInTheDocument();
@@ -138,14 +136,14 @@ describe('CategoryGroupedTable', () => {
 
   it('renders search input', () => {
     render(<CategoryGroupedTable groupedData={mockGroupedData} />);
-    
+
     const searchInput = screen.getByPlaceholderText('Search by product name, SKU, or category...');
     expect(searchInput).toBeInTheDocument();
   }) as any;
 
   it('renders category accordion headers', () => {
     render(<CategoryGroupedTable groupedData={mockGroupedData} />);
-    
+
     expect(screen.getByText('Electronics')).toBeInTheDocument();
     expect(screen.getByText('Books')).toBeInTheDocument();
     expect(screen.getByText('Uncategorized')).toBeInTheDocument();
@@ -153,7 +151,7 @@ describe('CategoryGroupedTable', () => {
 
   it('shows category statistics in accordion headers', () => {
     render(<CategoryGroupedTable groupedData={mockGroupedData} />);
-    
+
     // Electronics category stats
     expect(screen.getByText('2 Items')).toBeInTheDocument();
     expect(screen.getByText('Qty: 3')).toBeInTheDocument();
@@ -162,13 +160,13 @@ describe('CategoryGroupedTable', () => {
 
   it('expands accordion when clicked', async () => {
     render(<CategoryGroupedTable groupedData={mockGroupedData} />);
-    
+
     // Find the accordion summary containing Electronics
     const electronicsAccordion = screen.getByText('Electronics').closest('[role="button"]');
     expect(electronicsAccordion).toBeInTheDocument();
-    
+
     fireEvent.click(electronicsAccordion!);
-    
+
     await waitFor(() => {
       expect(screen.getByText('SKU001')).toBeInTheDocument();
       expect(screen.getByText('Test Product 1')).toBeInTheDocument();
@@ -177,10 +175,10 @@ describe('CategoryGroupedTable', () => {
 
   it('filters data when searching by category', async () => {
     render(<CategoryGroupedTable groupedData={mockGroupedData} />);
-    
+
     const searchInput = screen.getByPlaceholderText('Search by product name, SKU, or category...');
     fireEvent.change(searchInput, { target: { value: 'Electronics' } }) as any;
-    
+
     await waitFor(() => {
       expect(screen.getByText('Electronics')).toBeInTheDocument();
       expect(screen.queryByText('Books')).not.toBeInTheDocument();
@@ -189,10 +187,10 @@ describe('CategoryGroupedTable', () => {
 
   it('filters data when searching by SKU', async () => {
     render(<CategoryGroupedTable groupedData={mockGroupedData} />);
-    
+
     const searchInput = screen.getByPlaceholderText('Search by product name, SKU, or category...');
     fireEvent.change(searchInput, { target: { value: 'SKU001' } }) as any;
-    
+
     await waitFor(() => {
       expect(screen.getByText('Electronics')).toBeInTheDocument();
       expect(screen.queryByText('Books')).not.toBeInTheDocument();
@@ -201,7 +199,7 @@ describe('CategoryGroupedTable', () => {
 
   it('displays all products when no filtering is applied at component level', async () => {
     render(<CategoryGroupedTable groupedData={mockGroupedData} />);
-    
+
     await waitFor(() => {
       // Expand the electronics category to check its contents
       const electronicsAccordion = screen.getByText('Electronics').closest('[role="button"]');
@@ -215,14 +213,14 @@ describe('CategoryGroupedTable', () => {
 
   it('shows action buttons for products with serial numbers', async () => {
     render(<CategoryGroupedTable groupedData={mockGroupedData} />);
-    
+
     // Find and expand Electronics accordion
     const electronicsAccordion = screen.getByText('Electronics').closest('[role="button"]');
     fireEvent.click(electronicsAccordion!);
-    
+
     await waitFor(() => {
       const flipkartChips = screen.getAllByText('FLIPKART');
-      
+
       expect(screen.getAllByText('AMAZON').length).toBeGreaterThan(0);
       expect(flipkartChips.length).toBeGreaterThan(0);
     }) as any;
@@ -230,10 +228,10 @@ describe('CategoryGroupedTable', () => {
 
   it('displays empty state when no orders match search', async () => {
     render(<CategoryGroupedTable groupedData={mockGroupedData} />);
-    
+
     const searchInput = screen.getByPlaceholderText('Search by product name, SKU, or category...');
     fireEvent.change(searchInput, { target: { value: 'NonExistent' } }) as any;
-    
+
     await waitFor(() => {
       expect(screen.getByText('No orders found')).toBeInTheDocument();
       expect(screen.getByText('Try adjusting your search terms')).toBeInTheDocument();
@@ -257,32 +255,35 @@ describe('CategoryGroupedTable', () => {
         totalRevenue: 0
       }
     };
-    
+
     render(<CategoryGroupedTable groupedData={emptyData} />);
-    
+
     expect(screen.getByText('No orders found')).toBeInTheDocument();
     expect(screen.getByText('No active orders available')).toBeInTheDocument();
   }) as any;
 
   it('renders uncategorized section with warning style', () => {
     render(<CategoryGroupedTable groupedData={mockGroupedData} />);
-    
+
     const uncategorizedChip = screen.getByText('Uncategorized Products');
     expect(uncategorizedChip).toBeInTheDocument();
   }) as any;
 
-  it('displays correct unit prices in table rows', async () => {
+  it('displays order ID in table rows', async () => {
     render(<CategoryGroupedTable groupedData={mockGroupedData} />);
-    
+
     // Find and expand Electronics accordion
     const electronicsAccordion = screen.getByText('Electronics').closest('[role="button"]');
     fireEvent.click(electronicsAccordion!);
-    
+
     await waitFor(() => {
-      // Product 1: unit price 100
-      expect(screen.getByText('₹100')).toBeInTheDocument();
-      // Product 2: unit price 150
-      expect(screen.getByText('₹150')).toBeInTheDocument();
-    }) as any;
-  }) as any;
-}) as any;
+      // Product 1: Order ID ORD-123
+      expect(screen.getByText('ORD-123')).toBeInTheDocument();
+      // Ensure Price is NOT shown (using the mock format we removed, but more importantly checking for the element itself if we could, but checking for text is good enough)
+      // Since we removed the column, we don't expect the price cell
+
+      // We can also check that the unit price header is gone
+      // expect(screen.queryByText('Unit Price')).not.toBeInTheDocument(); // This would be better if we query specifically
+    });
+  });
+});

@@ -1,39 +1,38 @@
-import React, { useState } from 'react';
+import {
+  Category as CategoryIcon,
+  CheckCircle as CompletedIcon,
+  KeyboardArrowDown,
+  KeyboardArrowUp,
+  Schedule as PendingIcon,
+  Search as SearchIcon,
+} from '@mui/icons-material';
 import {
   Box,
+  Card,
+  CardContent,
   Chip,
+  Collapse,
+  Grid,
+  IconButton,
+  InputAdornment,
   Paper,
+  Stack,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Typography,
-  TextField,
-  InputAdornment,
-  Collapse,
-  IconButton,
   TableSortLabel,
-  Card,
-  CardContent,
-  Grid,
-  Stack,
-  useTheme,
+  TextField,
+  Typography,
   useMediaQuery,
+  useTheme,
 } from '@mui/material';
-import {
-  Category as CategoryIcon,
-  Search as SearchIcon,
-  KeyboardArrowDown,
-  KeyboardArrowUp,
-  CheckCircle as CompletedIcon,
-  Schedule as PendingIcon,
-} from '@mui/icons-material';
-import { CategoryGroup, GroupedOrderData, filterGroupsBySearch } from '../utils/groupingUtils';
+import React, { useState } from 'react';
 import { ViewAmazonListingButton, ViewFlipkartListingButton } from '../../../shared/ActionButtons';
-import { FormattedCurrency } from '../../../components/FormattedCurrency';
 import { ProductSummary } from '../../home/services/base.transformer';
+import { CategoryGroup, GroupedOrderData, filterGroupsBySearch } from '../utils/groupingUtils';
 
 interface CategoryGroupedTableProps {
   groupedData: GroupedOrderData;
@@ -52,7 +51,7 @@ const getCategoryStatistics = (group: CategoryGroup) => {
   const completed = group.orders.filter(order => order.isCompleted === true).length;
   const pending = group.totalItems - completed;
   const completionRate = group.totalItems > 0 ? (completed / group.totalItems) * 100 : 0;
-  
+
   return {
     itemCount: group.totalItems,
     totalQuantity: group.totalQuantity,
@@ -94,10 +93,10 @@ export const CategoryGroupedTable: React.FC<CategoryGroupedTableProps> = ({ grou
   const sortedCategories = [...filteredData.categorizedGroups].sort((a, b) => {
     const aStats = getCategoryStatistics(a);
     const bStats = getCategoryStatistics(b);
-    
+
     let aValue: string | number;
     let bValue: string | number;
-    
+
     switch (sortField) {
       case 'category':
         aValue = a.categoryName.toLowerCase();
@@ -115,13 +114,13 @@ export const CategoryGroupedTable: React.FC<CategoryGroupedTableProps> = ({ grou
         aValue = a.categoryName.toLowerCase();
         bValue = b.categoryName.toLowerCase();
     }
-    
+
     if (typeof aValue === 'string' && typeof bValue === 'string') {
-      return sortDirection === 'asc' 
+      return sortDirection === 'asc'
         ? aValue.localeCompare(bValue)
         : bValue.localeCompare(aValue);
     } else {
-      return sortDirection === 'asc' 
+      return sortDirection === 'asc'
         ? (aValue as number) - (bValue as number)
         : (bValue as number) - (aValue as number);
     }
@@ -140,7 +139,7 @@ export const CategoryGroupedTable: React.FC<CategoryGroupedTableProps> = ({ grou
         />
       );
     }
-    
+
     return (
       <Chip
         icon={<PendingIcon />}
@@ -155,25 +154,25 @@ export const CategoryGroupedTable: React.FC<CategoryGroupedTableProps> = ({ grou
 
   const renderActions = (order: ProductSummary) => (
     <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-      {order.product?.platform === 'flipkart' && 
-       order.product?.metadata?.flipkartSerialNumber &&
-       order.product.metadata.flipkartSerialNumber.trim() !== '' && (
-        <ViewFlipkartListingButton
-          flipkartSerialNumber={order.product.metadata.flipkartSerialNumber}
-        />
-      )}
+      {order.product?.platform === 'flipkart' &&
+        order.product?.metadata?.flipkartSerialNumber &&
+        order.product.metadata.flipkartSerialNumber.trim() !== '' && (
+          <ViewFlipkartListingButton
+            flipkartSerialNumber={order.product.metadata.flipkartSerialNumber}
+          />
+        )}
 
-      {order.product?.platform === 'amazon' && 
-       order.product?.metadata?.amazonSerialNumber &&
-       order.product.metadata.amazonSerialNumber.trim() !== '' && (
-        <ViewAmazonListingButton
-          amazonSerialNumber={order.product.metadata.amazonSerialNumber}
-        />
-      )}
+      {order.product?.platform === 'amazon' &&
+        order.product?.metadata?.amazonSerialNumber &&
+        order.product.metadata.amazonSerialNumber.trim() !== '' && (
+          <ViewAmazonListingButton
+            amazonSerialNumber={order.product.metadata.amazonSerialNumber}
+          />
+        )}
     </Box>
   );
 
-   
+
   const MobileCategoryCard: React.FC<CategoryRowProps> = ({ group, isExpanded, onToggle }) => {
     const stats = getCategoryStatistics(group);
 
@@ -181,11 +180,11 @@ export const CategoryGroupedTable: React.FC<CategoryGroupedTableProps> = ({ grou
       <Card sx={{ mb: 2, overflow: 'visible' }}>
         <CardContent sx={{ p: 2 }}>
           {/* Category Header */}
-          <Box 
+          <Box
             onClick={onToggle}
-            sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
               justifyContent: 'space-between',
               cursor: 'pointer',
               mb: 2
@@ -219,10 +218,10 @@ export const CategoryGroupedTable: React.FC<CategoryGroupedTableProps> = ({ grou
             <Grid item xs={6}>
               <Stack direction="row" spacing={0.5} alignItems="center">
                 <Typography variant="caption" color="text.secondary">Completed:</Typography>
-                <Chip 
-                  label={stats.completion.completed} 
-                  size="small" 
-                  color="success" 
+                <Chip
+                  label={stats.completion.completed}
+                  size="small"
+                  color="success"
                   variant="outlined"
                 />
               </Stack>
@@ -230,10 +229,10 @@ export const CategoryGroupedTable: React.FC<CategoryGroupedTableProps> = ({ grou
             <Grid item xs={6}>
               <Stack direction="row" spacing={0.5} alignItems="center">
                 <Typography variant="caption" color="text.secondary">Pending:</Typography>
-                <Chip 
-                  label={stats.completion.pending} 
-                  size="small" 
-                  color="warning" 
+                <Chip
+                  label={stats.completion.pending}
+                  size="small"
+                  color="warning"
                   variant="outlined"
                 />
               </Stack>
@@ -246,9 +245,9 @@ export const CategoryGroupedTable: React.FC<CategoryGroupedTableProps> = ({ grou
               <Typography variant="caption" color="text.secondary" sx={{ mr: 1 }}>
                 Platforms:
               </Typography>
-              <Chip 
-                label={stats.platforms.join(', ')} 
-                size="small" 
+              <Chip
+                label={stats.platforms.join(', ')}
+                size="small"
                 variant="outlined"
               />
             </Box>
@@ -262,9 +261,9 @@ export const CategoryGroupedTable: React.FC<CategoryGroupedTableProps> = ({ grou
               </Typography>
               <Stack spacing={1}>
                 {group.orders.map((order, index) => (
-                  <Card 
-                    key={`${order.SKU}-${index}`} 
-                    variant="outlined" 
+                  <Card
+                    key={`${order.SKU}-${index}`}
+                    variant="outlined"
                     sx={{ p: 1.5 }}
                   >
                     <Grid container spacing={1}>
@@ -272,6 +271,11 @@ export const CategoryGroupedTable: React.FC<CategoryGroupedTableProps> = ({ grou
                         <Typography variant="body2" sx={{ fontWeight: 500, mb: 0.5 }}>
                           {order.product?.name || order.name || 'Unknown Product'}
                         </Typography>
+                        {order.orderId && (
+                          <Typography variant="caption" color="text.secondary" display="block">
+                            ID: <span style={{ fontFamily: 'monospace' }}>{order.orderId}</span>
+                          </Typography>
+                        )}
                       </Grid>
                       <Grid item xs={6}>
                         <Typography variant="caption" color="text.secondary">SKU:</Typography>
@@ -281,29 +285,24 @@ export const CategoryGroupedTable: React.FC<CategoryGroupedTableProps> = ({ grou
                       </Grid>
                       <Grid item xs={6}>
                         <Typography variant="caption" color="text.secondary">Quantity:</Typography>
-                        <Chip 
-                          label={order.quantity} 
-                          size="small" 
-                          color="primary" 
+                        <Chip
+                          label={order.quantity}
+                          size="small"
+                          color="primary"
                           variant="outlined"
                           sx={{ height: 20, fontSize: '0.75rem' }}
                         />
                       </Grid>
                       <Grid item xs={6}>
                         <Typography variant="caption" color="text.secondary">Platform:</Typography>
-                        <Chip 
-                          label={order.type?.toUpperCase() || 'Unknown'} 
-                          size="small" 
+                        <Chip
+                          label={order.type?.toUpperCase() || 'Unknown'}
+                          size="small"
                           variant="outlined"
                           sx={{ height: 20, fontSize: '0.75rem' }}
                         />
                       </Grid>
-                      <Grid item xs={6}>
-                        <Typography variant="caption" color="text.secondary">Price:</Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          <FormattedCurrency value={order.product?.sellingPrice || 0} />
-                        </Typography>
-                      </Grid>
+
                       <Grid item xs={12}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           {renderCompletionStatus(order)}
@@ -340,7 +339,7 @@ export const CategoryGroupedTable: React.FC<CategoryGroupedTableProps> = ({ grou
     return (
       <>
         {/* Category Header Row */}
-        <TableRow 
+        <TableRow
           onClick={onToggle}
           role="button"
           sx={{ cursor: 'pointer' }}
@@ -422,22 +421,25 @@ export const CategoryGroupedTable: React.FC<CategoryGroupedTableProps> = ({ grou
                 <Table size="small">
                   <TableHead>
                     <TableRow>
+                      <TableCell><strong>Order ID</strong></TableCell>
                       <TableCell><strong>SKU</strong></TableCell>
                       <TableCell><strong>Product Name</strong></TableCell>
                       <TableCell align="center"><strong>Quantity</strong></TableCell>
                       <TableCell align="center"><strong>Platform</strong></TableCell>
                       <TableCell align="center"><strong>Batch</strong></TableCell>
                       <TableCell align="center"><strong>Status</strong></TableCell>
-                      <TableCell align="right"><strong>Unit Price</strong></TableCell>
                       <TableCell align="center"><strong>Actions</strong></TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {group.orders.map((order, index) => {
                       return (
-                        <TableRow 
+                        <TableRow
                           key={`${order.SKU}-${index}`}
                         >
+                          <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.875rem' }}>
+                            {order.orderId || '-'}
+                          </TableCell>
                           <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.875rem' }}>
                             {order.SKU || 'N/A'}
                           </TableCell>
@@ -447,17 +449,17 @@ export const CategoryGroupedTable: React.FC<CategoryGroupedTableProps> = ({ grou
                             </Typography>
                           </TableCell>
                           <TableCell align="center">
-                            <Chip 
-                              label={order.quantity} 
-                              size="small" 
-                              color="primary" 
+                            <Chip
+                              label={order.quantity}
+                              size="small"
+                              color="primary"
                               variant="outlined"
                             />
                           </TableCell>
                           <TableCell align="center">
-                            <Chip 
-                              label={order.type?.toUpperCase() || 'Unknown'} 
-                              size="small" 
+                            <Chip
+                              label={order.type?.toUpperCase() || 'Unknown'}
+                              size="small"
                               variant="outlined"
                             />
                           </TableCell>
@@ -483,9 +485,7 @@ export const CategoryGroupedTable: React.FC<CategoryGroupedTableProps> = ({ grou
                           <TableCell align="center">
                             {renderCompletionStatus(order)}
                           </TableCell>
-                          <TableCell align="right" data-testid="unit-price">
-                            <FormattedCurrency value={order.product?.sellingPrice || 0} />
-                          </TableCell>
+
                           <TableCell align="center">
                             {renderActions(order)}
                           </TableCell>
@@ -550,7 +550,7 @@ export const CategoryGroupedTable: React.FC<CategoryGroupedTableProps> = ({ grou
                   onToggle={() => handleCategoryToggle(group.categoryName)}
                 />
               ))}
-              
+
               {/* Uncategorized Group */}
               {filteredData.uncategorizedGroup.totalItems > 0 && (
                 <MobileCategoryCard
@@ -626,7 +626,7 @@ export const CategoryGroupedTable: React.FC<CategoryGroupedTableProps> = ({ grou
                       onToggle={() => handleCategoryToggle(group.categoryName)}
                     />
                   ))}
-                  
+
                   {/* Uncategorized Group */}
                   {filteredData.uncategorizedGroup.totalItems > 0 && (
                     <CategoryRow
